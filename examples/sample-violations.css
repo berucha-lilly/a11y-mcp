@@ -1,0 +1,62 @@
+/**
+ * Example CSS with accessibility violations
+ */
+
+.button-style {
+  /* Missing focus styles - this is a violation */
+  background-color: #007bff;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+}
+
+/* Missing :focus and :focus-visible styles */
+/* This violates WCAG 2.4.7 (Focus Visible) */
+
+.form-input {
+  border: 1px solid #ccc;
+  padding: 8px;
+  /* Missing focus states */
+}
+
+.sr-only {
+  /* Good - screen reader only class */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Good example - proper focus styles */
+.button-with-focus:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.button-with-focus:focus-visible {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Animation without considering prefers-reduced-motion */
+.animated-element {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Better approach - respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .animated-element {
+    animation: none;
+  }
+}
