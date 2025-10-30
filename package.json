@@ -1,0 +1,65 @@
+{
+  "name": "a11y-mcp",
+  "version": "1.0.0",
+  "description": "Comprehensive GitHub Accessibility Reviewer MCP Server for enforcing WCAG 2.2 AA standards",
+  "type": "module",
+  "main": "build/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node build/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf build",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "accessibility",
+    "wcag",
+    "wcag2.2",
+    "wcag-aa",
+    "github",
+    "mcp",
+    "model-context-protocol",
+    "typescript",
+    "jsx",
+    "tsx",
+    "css",
+    "scss",
+    "lint",
+    "eslint"
+  ],
+  "author": "MiniMax Agent",
+  "license": "MIT",
+  "dependencies": {
+    "@babel/core": "^7.25.0",
+    "@babel/parser": "^7.25.0",
+    "@babel/traverse": "^7.25.0",
+    "@babel/types": "^7.25.0",
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "postcss": "^8.4.41",
+    "postcss-scss": "^4.0.9",
+    "stylelint": "^16.2.0",
+    "stylelint-order": "^6.0.4",
+    "typescript": "^5.5.4"
+  },
+  "devDependencies": {
+    "@types/babel__core": "^7.20.5",
+    "@types/babel__traverse": "^7.20.6",
+    "@types/node": "^18.19.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.9.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "build/",
+    "README.md"
+  ]
+}

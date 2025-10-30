@@ -1,0 +1,23 @@
+{
+  "name": "agent_generated_github_accessibility_reviewer",
+  "exhibit_name": "GitHub Accessibility Reviewer",
+  "type": 3,
+  "command": "sh /workspace/a11y-mcp/run.sh",
+  "args": [],
+  "env": {},
+  "description": "Comprehensive GitHub Accessibility Reviewer MCP Server for enforcing WCAG 2.2 AA standards. Analyzes .jsx, .tsx, .js, .css, and .scss files for accessibility violations, provides fix suggestions, validates Lilly Design System component usage, and generates detailed compliance reports.",
+  "description_for_agent": "MCP server for automated accessibility code review that scans source files (.jsx, .tsx, .js, .css, .scss) for WCAG 2.2 AA violations, provides actionable fix suggestions, validates Lilly Design System component usage, and generates comprehensive compliance reports for GitHub pull request integration.",
+  "user_params": {
+    "args": {},
+    "env": {
+      "LDS_STORYBOOK_URL": {
+        "required": false,
+        "description": "URL to Lilly Design System Storybook for component validation (default: https://storybook.lilly.internal)"
+      },
+      "LDS_CACHE_TTL": {
+        "required": false,
+        "description": "Cache TTL in seconds for LDS component data (default: 3600)"
+      }
+    }
+  }
+}
