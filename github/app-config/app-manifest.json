@@ -1,0 +1,53 @@
+{
+  "name": "A11y-MCP Accessibility Reviewer",
+  "url": "https://a11y-mcp.internal",
+  "description": "Automated accessibility code review for GitHub pull requests",
+  "public": false,
+  "webhooks": {
+    "url": "https://a11y-mcp.internal/webhook",
+    "active": true
+  },
+  "redirect_url": "https://a11y-mcp.internal/setup",
+  "hook_attributes": {
+    "active": true,
+    "url": "https://a11y-mcp.internal/webhook"
+  },
+  "permissions": {
+    "checks": "write",
+    "contents": "read",
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write",
+    "repository_administration": "read",
+    "workflows": "write"
+  },
+  "events": [
+    "pull_request",
+    "pull_request_review",
+    "pull_request_review_comment",
+    "check_suite",
+    "check_run"
+  ],
+  "installation": {
+    "default_permissions": {
+      "checks": "write",
+      "contents": "read",
+      "issues": "write",
+      "metadata": "read",
+      "pull_requests": "write",
+      "repository_administration": "read",
+      "workflows": "write"
+    },
+    "default_events": [
+      "pull_request",
+      "pull_request_review"
+    ],
+    "settings": {
+      "only_single_file_change_prs": false,
+      "only_deploy_keys": false,
+      "only_app_owner_deploy_keys": false,
+      "single_file_changes_limit": 100,
+      "allow_list_only_for_app_access": false
+    }
+  }
+}
