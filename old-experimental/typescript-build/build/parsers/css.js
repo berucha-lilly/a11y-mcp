@@ -3,8 +3,7 @@
  */
 import postcss from 'postcss';
 import postcssScss from 'postcss-scss';
-import { BaseParser, ParseError } from './base.js';
-import { ParserResult } from '../types/index.js';
+import { BaseParser } from './base.js';
 export class CSSParser extends BaseParser {
     ast = null;
     errors = [];

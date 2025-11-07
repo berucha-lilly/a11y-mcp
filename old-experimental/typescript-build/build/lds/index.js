@@ -2,7 +2,6 @@
  * Lilly Design System (LDS) Integration
  * Fetches component specifications and validates usage
  */
-import { LDSComponent, LDSValidationResult } from '../types/index.js';
 export class LDSIntegration {
     storybookUrl;
     componentCache = new Map();

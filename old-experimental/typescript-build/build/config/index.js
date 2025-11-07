@@ -3,7 +3,6 @@
  */
 import fs from 'fs/promises';
 import path from 'path';
-import { ConfigFile } from '../types/index.js';
 const DEFAULT_CONFIG = {
     wcagLevel: 'AA',
     wcagVersion: '2.2',

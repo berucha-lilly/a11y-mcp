@@ -1,12 +1,10 @@
 /**
  * Main accessibility scanner that orchestrates file parsing and rule checking
  */
-import path from 'path';
-import { ConfigManager } from '../config/index.js';
-import { ParserFactory } from '../parsers/index.js';
-import { WCAGRuleEngine } from '../rules/wcag-engine.js';
-import { LDSIntegration } from '../lds/index.js';
-import { FileAnalysis, ScanResult, WCAGViolation, ConfigFile } from '../types/index.js';
+import { ConfigManager } from './config/index.js';
+import { ParserFactory } from './parsers/index.js';
+import { WCAGRuleEngine } from './rules/wcag-engine.js';
+import { LDSIntegration } from './lds/index.js';
 export class AccessibilityScanner {
     configManager;
     ruleEngine;
@@ -91,9 +89,10 @@ export class AccessibilityScanner {
             catch (error) {
                 console.warn(`Failed to scan file ${file.path}:`, error);
                 // Create error analysis
+                const fileType = ParserFactory.getFileType(file.path);
                 const errorAnalysis = {
                     filePath: file.path,
-                    fileType: ParserFactory.getFileType(file.path),
+                    fileType: fileType === 'unknown' ? 'jsx' : fileType,
                     content: file.content,
                     violations: [
                         {
@@ -299,14 +298,14 @@ export class AccessibilityScanner {
             try {
                 const validationResult = await this.ldsIntegration.validateComponentUsage(componentName, props);
                 if (!validationResult.valid) {
-                    validationResult.issues.forEach(issue => {
+                    validationResult.issues.forEach((issue) => {
                         violations.push({
                             id: 'lds-component-error',
                             severity: 'error',
                             wcagCriteria: ['4.1.2'],
                             title: `LDS Component Issue: ${componentName}`,
                             description: issue,
-                            help: validationResult.suggestions.find(s => s.includes(issue)) ||
+                            help: validationResult.suggestions.find((s) => s.includes(issue)) ||
                                 'Review LDS component documentation',
                             helpUrl: `https://storybook.lilly.internal/?path=/docs/${componentName.toLowerCase()}`,
                             line: location.line,
@@ -314,8 +313,8 @@ export class AccessibilityScanner {
                             element: componentName,
                             code: code,
                             fixSuggestions: validationResult.suggestions
-                                .filter(s => s !== issue)
-                                .map(suggestion => ({
+                                .filter((s) => s !== issue)
+                                .map((suggestion) => ({
                                 title: 'LDS Component Fix',
                                 description: suggestion,
                                 priority: 1

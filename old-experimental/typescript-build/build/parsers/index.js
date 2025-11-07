@@ -3,8 +3,6 @@
  */
 import { JavaScriptParser } from './javascript.js';
 import { CSSParser } from './css.js';
-import { BaseParser } from './base.js';
-import { ParserResult } from '../types/index.js';
 export class ParserFactory {
     static createParser(content, filePath) {
         const fileType = this.getFileType(filePath);

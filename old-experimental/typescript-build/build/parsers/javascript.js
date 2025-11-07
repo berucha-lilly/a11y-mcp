@@ -1,11 +1,9 @@
 /**
  * JSX/TSX/JS parser using Babel AST
  */
-import * as babel from '@babel/core';
 import * as babelParser from '@babel/parser';
 import * as traverse from '@babel/traverse';
-import { BaseParser, ParseError } from './base.js';
-import { ParserResult } from '../types/index.js';
+import { BaseParser } from './base.js';
 export class JavaScriptParser extends BaseParser {
     ast = null;
     errors = [];

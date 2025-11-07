@@ -4,11 +4,10 @@
  */
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema, ErrorCode, McpError, Tool } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { AccessibilityScanner } from './scanner.js';
 import { ConfigManager } from './config/index.js';
 import { LDSIntegration } from './lds/index.js';
-import { FileAnalysis, ScanResult, LDSComponent, ConfigFile, ToolInputSchema } from './types/index.js';
 class A11yMCPServer {
     server;
     scanner;

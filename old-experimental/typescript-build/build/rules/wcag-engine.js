@@ -2,7 +2,6 @@
  * WCAG 2.2 AA Rule Engine
  * Implements comprehensive accessibility rule checking
  */
-import { AccessibilityRule, RuleContext, RuleResult } from '../types/index.js';
 export class WCAGRuleEngine {
     rules = new Map();
     ruleMetadata = new Map();

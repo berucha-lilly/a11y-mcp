@@ -1,7 +1,7 @@
 /**
  * Main accessibility scanner that orchestrates file parsing and rule checking
  */
-import { FileAnalysis, ScanResult, ConfigFile } from '../types/index.js';
+import { FileAnalysis, ScanResult, ConfigFile } from './types/index.js';
 export declare class AccessibilityScanner {
     private configManager;
     private ruleEngine;

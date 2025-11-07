@@ -3,16 +3,16 @@
  */
 
 import path from 'path';
-import { ConfigManager } from '../config/index.js';
-import { ParserFactory } from '../parsers/index.js';
-import { WCAGRuleEngine } from '../rules/wcag-engine.js';
-import { LDSIntegration } from '../lds/index.js';
+import { ConfigManager } from './config/index.js';
+import { ParserFactory } from './parsers/index.js';
+import { WCAGRuleEngine } from './rules/wcag-engine.js';
+import { LDSIntegration } from './lds/index.js';
 import { 
   FileAnalysis, 
   ScanResult, 
   WCAGViolation, 
   ConfigFile 
-} from '../types/index.js';
+} from './types/index.js';
 
 export class AccessibilityScanner {
   private configManager: ConfigManager;
@@ -72,9 +72,9 @@ export class AccessibilityScanner {
 
     // Check for parse errors
     if (parseResult.hasErrors) {
-      const violations: WCAGViolation[] = parseResult.errors.map((error, index) => ({
+      const violations: WCAGViolation[] = parseResult.errors.map((error: string, index: number) => ({
         id: `parse-error-${index}`,
-        severity: 'error',
+        severity: 'error' as const,
         wcagCriteria: [],
         title: 'Parse Error',
         description: `Failed to parse file: ${error}`,
@@ -115,14 +115,15 @@ export class AccessibilityScanner {
         console.warn(`Failed to scan file ${file.path}:`, error);
         
         // Create error analysis
+        const fileType = ParserFactory.getFileType(file.path);
         const errorAnalysis: FileAnalysis = {
           filePath: file.path,
-          fileType: ParserFactory.getFileType(file.path),
+          fileType: fileType === 'unknown' ? 'jsx' : fileType,
           content: file.content,
           violations: [
             {
               id: 'scan-error',
-              severity: 'error',
+              severity: 'error' as const,
               wcagCriteria: [],
               title: 'Scan Error',
               description: `Failed to scan file: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -350,14 +351,14 @@ export class AccessibilityScanner {
         );
 
         if (!validationResult.valid) {
-          validationResult.issues.forEach(issue => {
+          validationResult.issues.forEach((issue: string) => {
             violations.push({
               id: 'lds-component-error',
-              severity: 'error',
+              severity: 'error' as const,
               wcagCriteria: ['4.1.2'],
               title: `LDS Component Issue: ${componentName}`,
               description: issue,
-              help: validationResult.suggestions.find(s => s.includes(issue)) || 
+              help: validationResult.suggestions.find((s: string) => s.includes(issue)) || 
                     'Review LDS component documentation',
               helpUrl: `https://storybook.lilly.internal/?path=/docs/${componentName.toLowerCase()}`,
               line: location.line,
@@ -365,8 +366,8 @@ export class AccessibilityScanner {
               element: componentName,
               code: code,
               fixSuggestions: validationResult.suggestions
-                .filter(s => s !== issue)
-                .map(suggestion => ({
+                .filter((s: string) => s !== issue)
+                .map((suggestion: string) => ({
                   title: 'LDS Component Fix',
                   description: suggestion,
                   priority: 1
