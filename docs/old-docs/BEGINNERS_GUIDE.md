@@ -46,7 +46,7 @@ node --version
 cd /path/to/your/projects
 
 # Clone the repository:
-git clone https://github.com/your-org/your-test-repo.git
+git clone https://github.com/your-username/your-test-repo.git
 
 # Go into the repository:
 cd your-test-repo
@@ -191,9 +191,9 @@ cd ~/a11y-mcp
 
 # Run A11y-MCP on the test file
 # (The exact command depends on how you set up A11y-MCP)
-node src/index.js --analyze /path/to/your/test-repo/test-violation.html
+./run.sh /path/to/your/test-repo/test-violation.html
 
-# Or if it's a script:
+# Or if you have a custom script:
 ./run-a11y-check.sh /path/to/your/test-repo/test-violation.html
 ```
 
