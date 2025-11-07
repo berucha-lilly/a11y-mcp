@@ -1,0 +1,85 @@
+{
+  "file": "/Users/C284934/Github/Accessibility/CodeForAccessHackathon/a11y-tests/accessibility-violations.js",
+  "type": "js",
+  "violations": [
+    {
+      "id": "div-button",
+      "severity": "error",
+      "title": "Interactive div should be a button",
+      "description": "Div with click handler should be a semantic button element",
+      "line": 82,
+      "wcag": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "fix": "Replace with <button> or add proper ARIA role and keyboard support"
+    },
+    {
+      "id": "div-button",
+      "severity": "error",
+      "title": "Interactive div should be a button",
+      "description": "Div with click handler should be a semantic button element",
+      "line": 83,
+      "wcag": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "fix": "Replace with <button> or add proper ARIA role and keyboard support"
+    },
+    {
+      "id": "div-button",
+      "severity": "error",
+      "title": "Interactive div should be a button",
+      "description": "Div with click handler should be a semantic button element",
+      "line": 134,
+      "wcag": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "fix": "Replace with <button> or add proper ARIA role and keyboard support"
+    },
+    {
+      "id": "div-button",
+      "severity": "error",
+      "title": "Interactive div should be a button",
+      "description": "Div with click handler should be a semantic button element",
+      "line": 135,
+      "wcag": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "fix": "Replace with <button> or add proper ARIA role and keyboard support"
+    },
+    {
+      "id": "div-button",
+      "severity": "error",
+      "title": "Interactive div should be a button",
+      "description": "Div with click handler should be a semantic button element",
+      "line": 236,
+      "wcag": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "fix": "Replace with <button> or add proper ARIA role and keyboard support"
+    },
+    {
+      "id": "div-button",
+      "severity": "error",
+      "title": "Interactive div should be a button",
+      "description": "Div with click handler should be a semantic button element",
+      "line": 238,
+      "wcag": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "fix": "Replace with <button> or add proper ARIA role and keyboard support"
+    }
+  ],
+  "summary": {
+    "totalViolations": 6,
+    "errors": 6,
+    "warnings": 0,
+    "info": 0,
+    "estimatedFixTime": "12 minutes"
+  }
+}

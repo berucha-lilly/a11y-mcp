@@ -1,0 +1,12 @@
+{
+  "file": "/Users/C284934/Github/Accessibility/CodeForAccessHackathon/a11y-tests/accessibility-violations.ts",
+  "type": "ts",
+  "violations": [],
+  "summary": {
+    "totalViolations": 0,
+    "errors": 0,
+    "warnings": 0,
+    "info": 0,
+    "estimatedFixTime": "1 minutes"
+  }
+}

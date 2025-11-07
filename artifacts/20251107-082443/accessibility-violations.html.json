@@ -1,0 +1,186 @@
+{
+  "file": "/Users/C284934/Github/Accessibility/CodeForAccessHackathon/a11y-tests/accessibility-violations.html",
+  "type": "html",
+  "violations": [
+    {
+      "id": "img-missing-alt",
+      "severity": "error",
+      "title": "Image missing alt attribute",
+      "description": "All images must have an alt attribute for screen readers",
+      "line": 24,
+      "wcag": [
+        "1.1.1"
+      ],
+      "fix": "Add alt attribute with meaningful description"
+    },
+    {
+      "id": "img-missing-alt",
+      "severity": "error",
+      "title": "Image missing alt attribute",
+      "description": "All images must have an alt attribute for screen readers",
+      "line": 49,
+      "wcag": [
+        "1.1.1"
+      ],
+      "fix": "Add alt attribute with meaningful description"
+    },
+    {
+      "id": "div-button",
+      "severity": "error",
+      "title": "Interactive div should be a button",
+      "description": "Div with click handler should be a semantic button element",
+      "line": 72,
+      "wcag": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "fix": "Replace with <button> or add proper ARIA role and keyboard support"
+    },
+    {
+      "id": "button-missing-accessible-name",
+      "severity": "error",
+      "title": "Button has no accessible name",
+      "description": "Button must have text content or aria-label",
+      "line": 48,
+      "wcag": [
+        "4.1.2"
+      ],
+      "fix": "Add visible text or aria-label attribute"
+    },
+    {
+      "id": "button-missing-accessible-name",
+      "severity": "error",
+      "title": "Button has no accessible name",
+      "description": "Button must have text content or aria-label",
+      "line": 49,
+      "wcag": [
+        "4.1.2"
+      ],
+      "fix": "Add visible text or aria-label attribute"
+    },
+    {
+      "id": "input-no-id-or-label",
+      "severity": "error",
+      "title": "Form input has no label or id",
+      "description": "Input needs an id with matching label or aria-label",
+      "line": 33,
+      "wcag": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "fix": "Add id and <label for> or aria-label"
+    },
+    {
+      "id": "input-no-id-or-label",
+      "severity": "error",
+      "title": "Form input has no label or id",
+      "description": "Input needs an id with matching label or aria-label",
+      "line": 34,
+      "wcag": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "fix": "Add id and <label for> or aria-label"
+    },
+    {
+      "id": "input-no-id-or-label",
+      "severity": "error",
+      "title": "Form input has no label or id",
+      "description": "Input needs an id with matching label or aria-label",
+      "line": 35,
+      "wcag": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "fix": "Add id and <label for> or aria-label"
+    },
+    {
+      "id": "input-no-id-or-label",
+      "severity": "error",
+      "title": "Form input has no label or id",
+      "description": "Input needs an id with matching label or aria-label",
+      "line": 75,
+      "wcag": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "fix": "Add id and <label for> or aria-label"
+    },
+    {
+      "id": "input-no-id-or-label",
+      "severity": "error",
+      "title": "Form input has no label or id",
+      "description": "Input needs an id with matching label or aria-label",
+      "line": 76,
+      "wcag": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "fix": "Add id and <label for> or aria-label"
+    },
+    {
+      "id": "input-no-id-or-label",
+      "severity": "error",
+      "title": "Form input has no label or id",
+      "description": "Input needs an id with matching label or aria-label",
+      "line": 143,
+      "wcag": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "fix": "Add id and <label for> or aria-label"
+    },
+    {
+      "id": "link-non-descriptive",
+      "severity": "warning",
+      "title": "Link text not descriptive",
+      "description": "Link text \"click here\" is not meaningful out of context",
+      "line": 28,
+      "wcag": [
+        "2.4.4"
+      ],
+      "fix": "Use descriptive link text that makes sense when read alone"
+    },
+    {
+      "id": "link-non-descriptive",
+      "severity": "warning",
+      "title": "Link text not descriptive",
+      "description": "Link text \"read more\" is not meaningful out of context",
+      "line": 29,
+      "wcag": [
+        "2.4.4"
+      ],
+      "fix": "Use descriptive link text that makes sense when read alone"
+    },
+    {
+      "id": "html-missing-lang",
+      "severity": "error",
+      "title": "HTML missing lang attribute",
+      "description": "The <html> element must have a lang attribute",
+      "line": 1,
+      "wcag": [
+        "3.1.1"
+      ],
+      "fix": "Add lang attribute to specify page language"
+    },
+    {
+      "id": "iframe-missing-title",
+      "severity": "error",
+      "title": "Iframe missing title",
+      "description": "All iframes must have a title attribute",
+      "line": 79,
+      "wcag": [
+        "2.4.1",
+        "4.1.2"
+      ],
+      "fix": "Add title attribute describing iframe content"
+    }
+  ],
+  "summary": {
+    "totalViolations": 15,
+    "errors": 13,
+    "warnings": 2,
+    "info": 0,
+    "estimatedFixTime": "30 minutes"
+  }
+}
