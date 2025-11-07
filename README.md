@@ -1,78 +1,75 @@
 # GitHub Accessibility Reviewer MCP Server
 
 [![WCAG 2.2 AA](https://img.shields.io/badge/WCAG-2.2%20AA-green)](https://www.w3.org/WAI/WCAG22/quickref/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B-green)](https://nodejs.org/)
 [![MCP Server](https://img.shields.io/badge/MCP-Server-purple)](https://modelcontextprotocol.io/)
 
-A comprehensive Model Context Protocol (MCP) server for automated accessibility code review that enforces WCAG 2.2 AA standards. This server analyzes source code files (.jsx, .tsx, .js, .css, .scss) for accessibility violations, provides actionable fix suggestions, validates Lilly Design System (LDS) component usage, and generates detailed compliance reports for GitHub pull request integration.
+**GitHub-Based Accessibility Reviewer with MCP**: An automated accessibility code review workflow integrated into the GitHub pipeline, using a customizable Model Context Protocol (MCP). The system enforces WCAG 2.2 AA standards on all pull requests, with planned integration of the Lilly Design System (LDS) for component validation. This reduces manual review effort, prevents accessibility regressions, and establishes a scalable foundation for future AI-assisted enforcement.
+
+## 🎯 Project Vision
+
+**Current Phase**: MVP - Core WCAG 2.2 AA enforcement via GitHub Actions  
+**Next Phase**: LDS component validation and advanced rule customization  
+**End Goal**: AI-assisted accessibility enforcement with comprehensive design system integration
 
 ## 🌟 Features
 
-### Core Functionality
-- **Multi-File Type Support**: Analyze .jsx, .tsx, .js, .css, and .scss files
-- **WCAG 2.2 AA Compliance**: Comprehensive rule engine covering all Level A and AA criteria
-- **Static Code Analysis**: AST-based parsing using Babel for JavaScript/TypeScript and PostCSS for stylesheets
-- **Hot-Reload Configuration**: Real-time configuration updates without server restart
-- **LDS Integration**: Validate Lilly Design System component usage and provide component specifications
+### Core Functionality (Current MVP)
+- **Multi-File Type Support**: Analyze `.js`, `.jsx`, `.ts`, `.tsx`, `.html`, `.htm`, `.css`, and `.scss` files
+- **WCAG 2.2 AA Compliance**: Pattern-based detection of 10 common accessibility violations
+- **GitHub Actions Integration**: Automated PR checks with detailed violation reports
+- **MCP Protocol**: Standardized JSON-RPC interface for tool integration
+- **Batch Processing**: Analyze multiple files in a single request
+- **Fix Suggestions**: Actionable remediation guidance for each violation type
 
-### Accessibility Rules Implemented
+### Planned Features (Roadmap)
+- **LDS Integration**: Validate Lilly Design System component usage and enforce approved patterns
+- **Customizable Rules**: Configure rule severity, exclusions, and thresholds per repository
+- **AST-Based Analysis**: Advanced parsing for complex violation detection
+- **AI-Assisted Fixes**: Automated code suggestions and PR auto-fixes
 
-#### Priority 1 - Blocking Violations (Error Level)
-1. **ARIA Attributes**
-   - Required ARIA attributes for specific roles
-   - Valid `aria-labelledby` and `aria-describedby` references
-   - No redundant or conflicting ARIA usage
-   - Proper role attribute validation
+### Accessibility Checks Implemented
 
-2. **Keyboard Navigation**
-   - All interactive elements keyboard accessible
-   - Logical tab order (tabIndex usage validation)
-   - Focus visible indicators in CSS
-   - No keyboard traps
-   - Skip links for navigation
+#### Images & Media
+1. **Missing Alt Text**: Detects `<img>` tags without `alt` attributes
+2. **Icon Accessibility**: Identifies icon elements (Font Awesome, etc.) without labels
 
-3. **Semantic HTML**
-   - Proper heading hierarchy (h1→h2→h3 sequence)
-   - Form inputs have associated labels
-   - Buttons vs links (semantic correctness)
-   - Landmark regions (header, nav, main, footer)
-   - Lists use proper markup
+#### Interactive Elements
+3. **Div as Button**: Flags `<div>` elements with `onClick` handlers (should use `<button>`)
+4. **Empty Buttons**: Detects buttons without text content or `aria-label`
+5. **Generic Link Text**: Finds links with non-descriptive text ("click here", "read more")
 
-4. **Alternative Text**
-   - Images have alt attributes
-   - Decorative images: alt=""
-   - Complex images have detailed descriptions
-   - Icon buttons have accessible names
+#### Forms
+6. **Inputs Without Labels**: Identifies form inputs missing associated `<label>` elements
 
-5. **Focus Management**
-   - Modal focus trapping validation
-   - Focus restoration after interactions
-   - Visible focus indicators in CSS
+#### Document Structure
+7. **Missing Language**: Detects HTML documents without `lang` attribute
+8. **Missing Page Title**: Identifies HTML without `<title>` element
+9. **Iframes Without Title**: Flags `<iframe>` elements without `title` attribute
 
-#### Priority 2 - Warnings
-- Missing language attribute
-- Empty heading tags
-- Suspicious link text ("click here")
-- Duplicate IDs
-- Missing page title
+#### Focus & Keyboard
+10. **Missing Focus Styles**: Detects CSS with `:focus { outline: none }` without alternative focus indicators
 
-### LDS (Lilly Design System) Integration
-- **Component Validation**: Verify usage of approved LDS components
-- **Component Specifications**: Fetch component documentation and accessibility requirements
-- **Alternative Suggestions**: Recommend LDS components for non-standard elements
-- **Cache Management**: Efficient caching with configurable TTL
+### MCP Tools Available
 
-## 🚀 Installation
+The server provides **3 MCP tools** via JSON-RPC:
+
+1. **`check_accessibility`**: Analyze a single file for violations
+2. **`check_accessibility_batch`**: Analyze multiple files in one request
+3. **`suggest_fix`**: Get detailed remediation guidance for violations
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18.0.0 or higher
-- npm or yarn package manager
+- **Node.js 18+** ([Download here](https://nodejs.org/))
+- **npm** (comes with Node.js)
+- **GitHub repository** with admin access (for GitHub Actions integration)
 
-### Installation Steps
+### Installation
 
-1. **Clone or download the project**
+1. **Clone the repository**
 ```bash
-# The project is ready to use as-is
+git clone https://github.com/berucha-lilly/a11y-mcp.git
 cd a11y-mcp
 ```
 
@@ -81,355 +78,374 @@ cd a11y-mcp
 npm install
 ```
 
-3. **Build TypeScript**
+3. **Test the MCP server**
 ```bash
-npm run build
+# List available MCP tools
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node mcp-server-simple.js
 ```
 
-4. **Run tests to verify functionality**
+**Expected output**: JSON response listing 3 available tools
+
+### Local Testing with CLI Scanner
+
 ```bash
-npm test
+# Test a single file
+node cli-scanner.js path/to/your-file.jsx
+
+# Test all files in a directory
+./run.sh path/to/directory
+
+# View results in JSON format
+node cli-scanner.js path/to/your-file.jsx --json
 ```
 
-## 🔧 Configuration
+### GitHub Actions Integration
 
-The server uses a configuration file at `.a11y/config.json` with the following structure:
+See the **[Complete Beginner's Guide](docs/BEGINNERS_GUIDE.md)** for detailed step-by-step setup instructions.
 
+## � MCP Tools Reference
+
+The server implements the Model Context Protocol and provides 3 tools accessible via JSON-RPC:
+
+### Tool 1: `check_accessibility`
+Analyze a single file for accessibility violations.
+
+**Input Schema:**
 ```json
 {
-  "$schema": "https://a11y-mcp.internal/schema/v1",
-  "wcagLevel": "AA",
-  "wcagVersion": "2.2",
-  "strictMode": true,
-  "ldsEnforcement": {
-    "enabled": true,
-    "storybookUrl": "https://storybook.lilly.internal",
-    "requireApprovedComponents": true,
-    "allowedExceptions": ["src/legacy/**"],
-    "cacheComponents": true,
-    "cacheTTL": 3600
-  },
-  "rules": {
-    "aria-required": {
-      "enabled": true,
-      "severity": "error"
-    },
-    "keyboard-nav": {
-      "enabled": true,
-      "severity": "error",
-      "checkTabIndex": true,
-      "requireFocusStyles": true
-    },
-    "semantic-html": {
-      "enabled": true,
-      "severity": "error"
-    },
-    "alt-text": {
-      "enabled": true,
-      "severity": "error"
-    },
-    "lds-components": {
-      "enabled": true,
-      "severity": "warning",
-      "suggestAlternatives": true
+  "filePath": "src/components/Button.jsx",
+  "content": "<button></button>"
+}
+```
+
+**Example Request:**
+```bash
+cat << 'EOF' | node mcp-server-simple.js
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "check_accessibility",
+    "arguments": {
+      "filePath": "test.jsx",
+      "content": "<img src='logo.png' />"
     }
-  },
-  "excludedRules": ["color-contrast"],
-  "failureThresholds": {
-    "error": 0,
-    "warning": 10
-  },
-  "ignore": [
-    "src/**/*.test.tsx",
-    "src/**/*.stories.tsx"
+  }
+}
+EOF
+```
+
+**Returns:**
+- Violation count
+- List of violations with line numbers
+- Severity levels (error/warning)
+- WCAG criteria references
+- Fix suggestions
+
+---
+
+### Tool 2: `check_accessibility_batch`
+Analyze multiple files in a single request.
+
+**Input Schema:**
+```json
+{
+  "files": [
+    {
+      "path": "src/App.jsx",
+      "content": "..."
+    },
+    {
+      "path": "src/styles.css",
+      "content": "..."
+    }
   ]
 }
 ```
 
-### Configuration Options
+**Returns:**
+- Per-file results
+- Summary statistics
+- Overall pass/fail status
 
-- **wcagLevel**: WCAG compliance level (A, AA, AAA)
-- **wcagVersion**: WCAG version (e.g., "2.2")
-- **strictMode**: Enable strict validation mode
-- **ldsEnforcement**: Lilly Design System integration settings
-- **rules**: Individual rule configuration and severity levels
-- **excludedRules**: Rules to exclude from analysis
-- **failureThresholds**: Maximum allowed violations before failing
-- **ignore**: File patterns to exclude from scanning
+---
 
-## 📋 Available MCP Tools
+### Tool 3: `suggest_fix`
+Get detailed remediation guidance for specific violation types.
 
-### `check_accessibility`
-Analyze code for WCAG violations across multiple file types.
-
-**Parameters:**
-- `code` (string, required): Source code content to analyze
-- `fileType` (string, required): File type (jsx, tsx, js, css, scss)
-- `filePath` (string, optional): File path for context
-- `config` (object, optional): Override configuration
-
-**Example:**
-```typescript
-await client.call_tool("check_accessibility", {
-  "code": "<img src='test.jpg' />",
-  "fileType": "jsx",
-  "filePath": "components/Image.tsx"
-});
-```
-
-### `suggest_fix`
-Generate remediation suggestions for specific violations.
-
-**Parameters:**
-- `violation` (object, required): Violation object with details
-- `code` (string, required): Current code with the violation
-- `context` (object, optional): Additional context
-
-**Example:**
-```typescript
-await client.call_tool("suggest_fix", {
-  "violation": {
-    "id": "img-missing-alt",
-    "title": "Image missing alt attribute"
-  },
-  "code": "<img src='test.jpg' />"
-});
-```
-
-### `query_lds_component`
-Fetch component specifications from Lilly Design System Storybook.
-
-**Parameters:**
-- `componentName` (string, required): Name of the LDS component
-
-**Example:**
-```typescript
-await client.call_tool("query_lds_component", {
-  "componentName": "Button"
-});
-```
-
-### `get_config` / `update_config`
-Manage accessibility scanning configuration.
-
-**Example:**
-```typescript
-await client.call_tool("get_config", {});
-await client.call_tool("update_config", {
-  "config": {
-    "rules": {
-      "aria-required": {
-        "enabled": true
-      }
-    }
+**Input Schema:**
+```json
+{
+  "violationType": "img-missing-alt",
+  "context": {
+    "line": 42,
+    "code": "<img src='logo.png' />"
   }
-});
+}
 ```
 
-### `generate_report`
-Generate comprehensive accessibility report from scan results.
+**Returns:**
+- Step-by-step fix instructions
+- Code examples (before/after)
+- WCAG documentation links
+- Best practices
 
-**Parameters:**
-- `scanResult` (object, required): Scan result from check_accessibility
-- `format` (string, optional): Report format (json, html, markdown)
-- `includeFixes` (boolean, optional): Include fix suggestions
+## 🔗 GitHub Actions Integration
 
-## 📊 MCP Resources
+Automatically check every pull request for accessibility violations.
 
-### `wcag://2.2/AA/rules`
-Complete set of WCAG 2.2 Level A and AA success criteria and conformance requirements.
+### Setup (Quick Version)
 
-### `lds://storybook/components`
-Lilly Design System component specifications and accessibility requirements.
-
-## 🎯 MCP Prompts
-
-### `accessibility-review`
-Generate comprehensive accessibility review prompts for code review.
-
-### `wcag-guidance`
-Get WCAG 2.2 AA compliance guidance for specific scenarios.
-
-## 🧪 Testing
-
-Run the comprehensive test suite:
-
+1. **Copy MCP server to your repository:**
 ```bash
-npm test
+mkdir -p .github/a11y-mcp
+cp mcp-server-simple.js .github/a11y-mcp/
+cp package.json package-lock.json .github/a11y-mcp/
+cd .github/a11y-mcp && npm ci && cd ../..
 ```
 
-Run tests in watch mode:
-
+2. **Add workflow file:**
 ```bash
-npm run test:watch
+mkdir -p .github/workflows
+cp github-actions/accessibility-mcp-workflow.yml .github/workflows/
 ```
 
-### Test Coverage
-The test suite covers:
-- All WCAG rule implementations
-- File type-specific parsing
-- Configuration management
-- LDS integration
-- Edge cases and error handling
-- Performance and statistics calculation
+3. **Commit and push:**
+```bash
+git add .github/
+git commit -m "Add MCP accessibility checks"
+git push
+```
+
+### What Happens on Each PR
+
+1. **Trigger**: Workflow runs on every PR that changes `.js`, `.jsx`, `.ts`, `.tsx`, `.html`, `.css`, or `.scss` files
+2. **Analysis**: MCP server checks all changed files via JSON-RPC
+3. **Reporting**: Bot comments on PR with:
+   - Total violations found
+   - Per-file breakdown
+   - Line numbers and descriptions
+   - Fix suggestions
+   - WCAG criteria references
+4. **Status Check**: Pass/fail check that can block merging
+
+### Example PR Comment
+
+```markdown
+## 🔍 Accessibility Review Results (via MCP)
+
+**Files Checked:** 3
+**Total Violations:** 5 (4 errors, 1 warning)
+
+### ❌ src/components/Button.jsx
+- **Line 12**: [ERROR] Image missing alt attribute
+  - Fix: Add alt="description" to image
+  - WCAG: 1.1.1 (Level A)
+
+- **Line 24**: [ERROR] Div used as button
+  - Fix: Use <button> element instead
+  - WCAG: 4.1.2 (Level A)
+```
+
+### Making Checks Required
+
+To **block merging** when violations are found:
+
+1. Go to **Repository Settings** → **Branches**
+2. Add/edit branch protection rule for `main`
+3. Enable "Require status checks to pass before merging"
+4. Select "Check Accessibility via MCP"
+5. Save changes
+
+**See the [Beginner's Guide](docs/BEGINNERS_GUIDE.md) for detailed step-by-step instructions with screenshots.**
 
 ## 📖 Usage Examples
 
-### Example 1: Basic JSX Analysis
+### Example 1: Testing a Single File Locally
 
-```typescript
-import { AccessibilityScanner } from 'a11y-mcp';
+```bash
+# Create a test file with violations
+cat > test.jsx << 'EOF'
+export const MyComponent = () => {
+  return (
+    <div>
+      <img src="logo.png" />
+      <div onClick={() => alert('hi')}>Click me</div>
+    </div>
+  );
+};
+EOF
 
-const scanner = new AccessibilityScanner();
-await scanner.initialize();
-
-const code = `
-  <div onClick={handleClick}>Click me</div>
-  <img src="test.jpg" />
-  <input type="text" />
-`;
-
-const result = await scanner.scanFile('example.tsx', code);
-
-console.log('Violations found:', result.violations.length);
-console.log('Errors:', result.statistics.errors);
-console.log('Estimated fix time:', result.statistics.estimatedFixTime);
+# Run the CLI scanner
+node cli-scanner.js test.jsx
 ```
 
-### Example 2: CSS Analysis
+**Output:**
+```
+📄 File: test.jsx
+❌ Result: Found 2 accessibility violation(s):
 
-```typescript
-const css = `
-  .button {
-    background: blue;
-    color: white;
-    /* Missing focus styles */
-  }
-`;
+1. [ERROR] Image missing alt attribute
+   📍 Line: 4
+   💡 Fix: Add alt="description" to the image tag
+   📚 WCAG: 1.1.1 (Level A)
 
-const result = await scanner.scanFile('styles.css', css);
-const focusViolation = result.violations.find(v => v.id === 'focus-visible');
-
-if (focusViolation) {
-  console.log('Fix suggestion:', focusViolation.fixSuggestions[0]);
-}
+2. [ERROR] Div used as button
+   📍 Line: 5
+   💡 Fix: Use <button> element instead of div with onClick
+   📚 WCAG: 4.1.2 (Level A)
 ```
 
-### Example 3: Multiple File Analysis
+---
 
-```typescript
-const files = [
-  { path: 'components/Button.tsx', content: buttonCode },
-  { path: 'styles/main.css', content: cssCode },
-  { path: 'pages/Home.tsx', content: homeCode }
-];
+### Example 2: Using MCP Protocol Directly
 
-const result = await scanner.scanFiles(files);
-
-console.log('Overall compliance score:', result.summary.complianceScore);
-console.log('Top violation categories:', result.summary.topCategories);
-```
-
-## 🔗 Integration with GitHub
-
-### GitHub Actions Integration
-
-Create a workflow file `.github/workflows/accessibility.yml`:
-
-```yaml
-name: Accessibility Review
-
-on:
-  pull_request:
-    paths:
-      - 'src/**/*.{tsx,jsx,js,css,scss}'
-
-jobs:
-  accessibility:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          
-      - name: Install dependencies
-        run: npm install
-        
-      - name: Run accessibility scan
-        run: npm run scan --src src
-        
-      - name: Comment PR with results
-        uses: actions/github-script@v7
-        with:
-          script: |
-            // Comment PR with accessibility results
-            const results = fs.readFileSync('accessibility-report.json');
-            const summary = JSON.parse(results).summary;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🔍 Accessibility Analysis Results:\n\n` +
-                    `- Compliance Score: ${summary.complianceScore}%\n` +
-                    `- Total Violations: ${summary.totalViolations}\n` +
-                    `- Files Analyzed: ${summary.totalFiles}`
-            });
-```
-
-### MCP Client Integration
-
-For integrating with MCP-compatible tools:
-
-```json
+```bash
+# Check a file via JSON-RPC
+cat << 'EOF' | node mcp-server-simple.js 2>/dev/null | jq
 {
-  "mcpServers": {
-    "accessibility-reviewer": {
-      "command": "sh",
-      "args": ["/path/to/a11y-mcp/run.sh"]
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "check_accessibility",
+    "arguments": {
+      "filePath": "Button.jsx",
+      "content": "<button></button>"
     }
   }
 }
+EOF
 ```
+
+**Returns:** JSON with violation details
+
+---
+
+### Example 3: Batch Checking Multiple Files
+
+```bash
+# Use the batch tool
+cat << 'EOF' | node mcp-server-simple.js 2>/dev/null | jq
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "check_accessibility_batch",
+    "arguments": {
+      "files": [
+        {
+          "path": "App.jsx",
+          "content": "<div onClick={...}>Click</div>"
+        },
+        {
+          "path": "styles.css",
+          "content": ":focus { outline: none; }"
+        }
+      ]
+    }
+  }
+}
+EOF
+```
+
+---
+
+### Example 4: Getting Fix Suggestions
+
+```bash
+# Request fix suggestions for a violation type
+cat << 'EOF' | node mcp-server-simple.js 2>/dev/null | jq
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "suggest_fix",
+    "arguments": {
+      "violationType": "img-missing-alt",
+      "context": {
+        "code": "<img src='logo.png' />",
+        "line": 10
+      }
+    }
+  }
+}
+EOF
+```
+
+**Returns:** Detailed remediation steps and code examples
 
 ## 🏗️ Architecture
 
+### System Overview
+
+```
+┌─────────────────────┐
+│  GitHub Actions     │  Triggers on PR
+└──────────┬──────────┘
+           │ (JSON-RPC)
+           ▼
+┌─────────────────────┐
+│  MCP Server         │  mcp-server-simple.js
+│  - check_a11y       │  Analyzes files via pattern matching
+│  - batch_check      │  Returns violations + suggestions
+│  - suggest_fix      │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  GitHub API         │  Posts results to PR
+└─────────────────────┘
+
+Future: LDS Storybook integration →
+```
+
 ### Core Components
 
-1. **Scanner** (`src/scanner.ts`)
-   - Main orchestration logic
-   - File parsing coordination
-   - Results aggregation
+**1. MCP Server** (`mcp-server-simple.js`)
+- Implements Model Context Protocol (JSON-RPC 2.0)
+- Provides 3 tools for accessibility checking
+- Pattern-based violation detection using regex
+- Returns structured JSON results
 
-2. **Rule Engine** (`src/rules/wcag-engine.ts`)
-   - WCAG 2.2 AA rule implementations
-   - Rule registration and execution
-   - Violation detection
+**2. CLI Scanner** (`cli-scanner.js`)
+- Standalone command-line interface
+- Same analysis logic as MCP server
+- Human-readable output for local testing
+- JSON output mode for CI/CD
 
-3. **Parsers**
-   - JavaScriptParser (`src/parsers/javascript.ts`)
-   - CSSParser (`src/parsers/css.ts`)
-   - ParserFactory (`src/parsers/index.ts`)
+**3. GitHub Actions Workflow** (`github-actions/accessibility-mcp-workflow.yml`)
+- Detects changed files in PR
+- Calls MCP server via stdio/JSON-RPC
+- Posts formatted results as PR comment
+- Uploads artifacts (request/response logs)
 
-4. **LDS Integration** (`src/lds/index.ts`)
-   - Component validation
-   - Storybook API integration
-   - Caching mechanism
+**4. Batch Runner** (`run.sh`)
+- Shell script for testing multiple files
+- Error-resilient (continues on failures)
+- Generates timestamped summary reports
 
-5. **Configuration** (`src/config/index.ts`)
-   - Hot-reload configuration management
-   - Validation and defaults
+### Analysis Method
 
-### Data Flow
+**Pattern Matching** (Current Implementation):
+- Regex-based detection of common patterns
+- Fast and lightweight
+- No AST parsing required
+- Covers 10 most common WCAG violations
 
-```
-Source Code → Parser → AST → Rule Engine → Violations → Report
-     ↓                                           ↓
-Configuration ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-```
+**Future Enhancement - LDS Integration**:
+- Query LDS Storybook API for component specs
+- Validate component usage against approved patterns
+- Suggest LDS alternatives for non-standard elements
+- Track design system adoption metrics
+
+**Future Enhancement - AST Parsing** (TypeScript build in `old-experimental/`):
+- AST-based parsing with Babel/PostCSS
+- More sophisticated rule engine
+- Additional WCAG criteria coverage
 
 ## 🛠️ Development
 
@@ -437,142 +453,179 @@ Configuration ←←←←←←←←←←←←←←←←←←←←←←
 
 ```
 a11y-mcp/
-├── src/
-│   ├── parsers/           # File type parsers
-│   ├── rules/             # WCAG rule implementations  
-│   ├── lds/               # LDS integration
-│   ├── config/            # Configuration management
-│   ├── types/             # TypeScript definitions
-│   ├── scanner.ts         # Main scanner
-│   └── index.ts           # MCP server
-├── tests/                 # Test suite
-├── examples/              # Sample code with violations
-├── docs/                  # Additional documentation
-├── run.sh                 # Startup script
-├── mcp-server.json        # MCP configuration
-└── package.json
+├── mcp-server-simple.js        # Main MCP server (production)
+├── cli-scanner.js              # CLI testing tool
+├── run.sh                      # Batch file scanner
+├── package.json                # Dependencies
+├── mcp-server.json             # MCP configuration
+├── github-actions/
+│   └── accessibility-mcp-workflow.yml  # GitHub Actions workflow
+├── docs/
+│   ├── BEGINNERS_GUIDE.md              # Step-by-step setup guide
+│   └── MCP_GITHUB_ACTIONS_SETUP.md     # Technical reference
+├── examples/                   # Test files with violations
+├── old-experimental/           # Archive of experimental features
+│   └── typescript-build/       # TypeScript implementation (future)
+└── README.md                   # This file
 ```
 
-### Adding New Rules
+### Adding New Accessibility Checks
 
-1. **Create rule implementation** in `src/rules/wcag-engine.ts`:
+Edit `mcp-server-simple.js` and add to the `analyzeFile()` function:
 
-```typescript
-private createCustomRule(): AccessibilityRule {
-  return {
-    id: 'custom-rule-id',
-    name: 'Custom Rule Name',
-    description: 'Rule description',
-    wcagCriteria: ['X.Y.Z'],
-    severity: 'error',
-    appliesTo: ['jsx', 'tsx'],
-
-    check(context: RuleContext): RuleResult {
-      const violations: any[] = [];
-      
-      // Rule logic here
-      context.node.findNodesMatching(/* logic */);
-      
-      return { violations };
-    }
-  };
-}
-```
-
-2. **Register the rule** in the `initializeRules()` method:
-
-```typescript
-this.registerRule(this.createCustomRule());
-```
-
-3. **Add to configuration** in `DEFAULT_CONFIG`:
-
-```typescript
-rules: {
-  'custom-rule-id': {
-    enabled: true,
-    severity: 'error'
+```javascript
+// Example: Check for missing form labels
+const formLabelPattern = /<input[^>]+type=["'](?:text|email|password)[^>]*>/gi;
+let match;
+while ((match = formLabelPattern.exec(content)) !== null) {
+  const lineNum = content.substring(0, match.index).split('\n').length;
+  const inputTag = match[0];
+  
+  // Check if input has associated label
+  const hasId = /id=["'][^"']+["']/.test(inputTag);
+  const hasAriaLabel = /aria-label=["'][^"']+["']/.test(inputTag);
+  
+  if (!hasId && !hasAriaLabel) {
+    violations.push({
+      type: 'error',
+      rule: 'input-missing-label',
+      message: 'Form input missing associated label',
+      line: lineNum,
+      wcagCriteria: '3.3.2',
+      wcagLevel: 'A',
+      suggestions: [
+        'Add a <label> element with for="inputId"',
+        'Add aria-label="description" to the input'
+      ]
+    });
   }
 }
 ```
 
-### Adding New File Types
+### Customizing Severity Levels
 
-1. **Create parser** implementing `BaseParser`
-2. **Register in ParserFactory**
-3. **Update file type handling**
-4. **Add to test suite**
+Change `type: 'error'` to `type: 'warning'` for non-blocking checks.
 
-## 📈 Performance
+### Testing Changes Locally
 
-### Optimization Features
-- **Incremental Parsing**: Only re-parse changed files
-- **Caching**: LDS component data cached with configurable TTL
-- **Hot-Reload**: Configuration changes applied without restart
-- **Efficient AST Traversal**: Optimized node matching patterns
+```bash
+# Test your changes on example files
+node cli-scanner.js examples/accessibility-violations.jsx
 
-### Performance Considerations
-- Large files (>10MB) may impact parsing speed
-- Complex CSS/SCSS files with extensive nesting
-- Multiple simultaneous file processing
-- Real-time configuration updates
+# Test via MCP protocol
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node mcp-server-simple.js
 
-## 🤝 Contributing
+# Test batch processing
+./run.sh examples/
+```
 
-### Guidelines
-1. **Accessibility-First**: All contributions must maintain or improve accessibility
-2. **Test Coverage**: New features require corresponding tests
-3. **Documentation**: Update documentation for new features
-4. **WCAG Compliance**: Ensure rule implementations align with WCAG 2.2 AA
-
-### Development Workflow
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/new-rule`
-3. Implement changes with tests
-4. Run test suite: `npm test`
-5. Update documentation
-6. Submit pull request
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
+## 🆘 Troubleshooting
 
 ### Common Issues
 
-**Q: How do I handle false positives?**
-A: Use the configuration file to exclude specific rules or adjust severity levels.
+**Q: MCP server doesn't start**
+```bash
+# Check Node.js version (must be 18+)
+node --version
 
-**Q: Can I integrate with existing linting tools?**
-A: Yes, the scanner can complement ESLint, Stylelint, and other tools.
+# Verify dependencies are installed
+npm list @modelcontextprotocol/sdk
+```
 
-**Q: How do I customize LDS component validation?**
-A: Update the `ldsEnforcement` section in the configuration file.
+**Q: No violations found but I see issues in my code**
+- Check if file extension is supported (`.js`, `.jsx`, `.ts`, `.tsx`, `.html`, `.css`, `.scss`)
+- Violation type may not be in the current 10 checks
+- Pattern matching may not catch complex cases
 
-**Q: What's the difference from axe-core?**
-A: This tool analyzes source code statically, while axe-core analyzes rendered DOM.
+**Q: GitHub Actions workflow doesn't run**
+```bash
+# Verify workflow file exists
+ls .github/workflows/accessibility-check.yml
 
-### Getting Help
+# Check YAML syntax is valid
+cat .github/workflows/accessibility-check.yml
+```
 
-- **Issues**: Report bugs and feature requests
-- **Documentation**: Check the `docs/` directory for detailed guides
-- **Examples**: Review `examples/` directory for usage patterns
-- **Tests**: Examine test cases for expected behavior
+**Q: "Module not found" error in GitHub Actions**
+- Ensure `package.json` and `package-lock.json` are in `.github/a11y-mcp/`
+- Check that `npm ci` step runs before the MCP server is invoked
 
-## 🔄 Changelog
+**Q: False positives in results**
+- Review the specific pattern being matched
+- Consider if the violation is actually valid
+- Add to ignored files/patterns if needed
 
-### v1.0.0
-- Initial release
-- WCAG 2.2 AA rule implementation
-- Multi-file type support
-- LDS integration
-- Configuration management
-- Comprehensive test suite
+### Testing Locally First
+
+Always test changes locally before pushing to GitHub:
+
+```bash
+# 1. Test MCP server starts
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node mcp-server-simple.js
+
+# 2. Test on a known file with violations
+node cli-scanner.js examples/accessibility-violations.jsx
+
+# 3. Test batch processing
+./run.sh examples/
+
+# 4. If all pass, commit and push
+git add .
+git commit -m "Update accessibility checks"
+git push
+```
+
+## 📚 Documentation
+
+- **[Beginner's Guide](docs/BEGINNERS_GUIDE.md)** - Complete step-by-step setup (recommended for first-time users)
+- **[Technical Reference](docs/MCP_GITHUB_ACTIONS_SETUP.md)** - Architecture and advanced configuration
+- **[Examples](examples/)** - Sample files with accessibility violations for testing
+- **[WCAG 2.2 Guidelines](https://www.w3.org/WAI/WCAG22/quickref/)** - Official WCAG documentation
+
+## 🔄 Roadmap
+
+### ✅ Phase 1 - MVP (Current)
+- ✅ 10 common accessibility checks (WCAG 2.2 AA)
+- ✅ Pattern-based detection (regex)
+- ✅ MCP protocol implementation
+- ✅ GitHub Actions integration
+- ✅ CLI scanner for local testing
+- ✅ Batch file processing
+- ✅ PR commenting with violation details
+
+### 🚧 Phase 2 - LDS Integration (Next)
+- 🔲 **Lilly Design System (LDS) validation**: Enforce use of approved LDS components
+- 🔲 **Component specifications**: Query LDS Storybook for accessibility requirements
+- 🔲 **Alternative suggestions**: Recommend LDS components for non-standard elements
+- 🔲 **Design system compliance scoring**: Track LDS adoption across repositories
+
+### 🔮 Phase 3 - Advanced Features (Future)
+- 🔲 AST-based parsing (TypeScript implementation in `old-experimental/`)
+- 🔲 Additional WCAG criteria (color contrast, heading hierarchy, ARIA validation)
+- 🔲 Configurable rules engine (per-repo `.a11y/config.json`)
+- 🔲 HTML rendering for runtime checks (detect dynamic violations)
+- 🔲 AI-assisted code fixes (automated PR suggestions)
+- 🔲 VS Code extension for inline checks
+- 🔲 Compliance dashboards and analytics
+
+### 🎯 End Goal
+**AI-Assisted Accessibility Enforcement**: A comprehensive system that combines:
+- Real-time WCAG 2.2 AA validation
+- LDS component enforcement
+- Automated fix generation via AI
+- Historical compliance tracking
+- Team education and best practices
+
+## 📄 License
+
+MIT License - see [LICENSE.txt](LICENSE.txt) file for details.
 
 ## 🙏 Acknowledgments
 
-- **W3C Web Accessibility Initiative** for WCAG guidelines
-- **Deque Labs** for axe-core inspiration
-- **Lilly Design System** team for component specifications
-- **Model Context Protocol** community for server framework
+- **W3C Web Accessibility Initiative** for WCAG 2.2 guidelines
+- **Model Context Protocol** community for standardized tool interface
+- **GitHub Actions** for CI/CD automation capabilities
+
+---
+
+**Ready to get started?** Check out the **[Beginner's Guide](docs/BEGINNERS_GUIDE.md)** for step-by-step setup instructions! 🚀
