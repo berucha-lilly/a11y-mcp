@@ -447,6 +447,6 @@ if [ ${#POSITIONAL[@]} -gt 0 ]; then
 else
 	# Start the proper MCP server
 	echo "Starting GitHub Accessibility Reviewer MCP Server..." >&2
-	# Start the simple MCP server directly
-	exec node mcp-server-simple.js
+	# Start the production MCP server
+	exec node src/mcp-server.js
 fi

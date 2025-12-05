@@ -1,1 +1,5 @@
 node_modules
+artifacts/
+*.log
+.a11y/cache/
+.DS_Store

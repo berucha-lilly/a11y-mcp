@@ -1,26 +1,27 @@
-#!/usr/bin/env node
 /**
- * CLI Scanner for GitHub Actions Integration  
- * Comprehensive accessibility checker for all file types
- * Supports: .js, .jsx, .ts, .tsx, .html, .htm, .css, .scss
+ * Regex-based Accessibility Analyzer
+ * Fast pattern matching for common WCAG 2.2 AA violations
+ * Used as the fast path in the hybrid analyzer
  */
 
-import fs from 'fs';
 import path from 'path';
 
 /**
- * Comprehensive accessibility analyzer
+ * Analyze a file for accessibility violations using regex pattern matching
+ * @param {string} content - File content to analyze
+ * @param {string} filePath - Path to the file (used for extension detection)
+ * @returns {Array} Array of violation objects
  */
-function analyzeFile(content, filePath) {
+export function analyzeFile(content, filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const violations = [];
   let line = 1;
   let match;
   
-  // === JSX/TSX/JS/HTML CHECKS ===
+  // JSX/TSX/JS/HTML analysis
   if (['.jsx', '.tsx', '.js', '.html', '.htm'].includes(ext)) {
     
-    // 1. Missing alt attributes on images
+    // 1. Missing alt attributes
     const imgRegex = /<img[^>]*>/gi;
     while ((match = imgRegex.exec(content)) !== null) {
       if (!match[0].includes('alt=')) {
@@ -57,9 +58,9 @@ function analyzeFile(content, filePath) {
         code: match[0],
         fixSuggestions: [
           'Replace <div onClick> with <button>',
-          'Add role="button" tabIndex="0" and keyboard handlers if div is required'
+          'Add role="button" tabIndex="0" and keyboard handlers'
         ],
-        tags: ['wcag-a', 'semantic-html', 'keyboard']
+        tags: ['wcag-a', 'semantic-html']
       });
     }
 
@@ -81,10 +82,7 @@ function analyzeFile(content, filePath) {
           line,
           column: 1,
           code: match[0],
-          fixSuggestions: [
-            'Add text inside the button',
-            'Add aria-label="description" attribute'
-          ],
+          fixSuggestions: ['Add text inside button', 'Add aria-label="description"'],
           tags: ['wcag-a', 'buttons']
         });
       }
@@ -99,7 +97,6 @@ function analyzeFile(content, filePath) {
       const inputType = /type=["']([^"']+)["']/.exec(match[0]);
       const type = inputType ? inputType[1] : 'text';
       
-      // Skip hidden and submit/button inputs
       if (type === 'hidden' || type === 'submit' || type === 'button') continue;
       
       if (hasId && !hasAriaLabel && !hasAriaLabelledBy) {
@@ -118,31 +115,10 @@ function analyzeFile(content, filePath) {
             line,
             column: 1,
             code: match[0],
-            fixSuggestions: [
-              `Add <label for="${inputId}">Label text</label>`,
-              'Add aria-label="description" to the input'
-            ],
+            fixSuggestions: [`Add <label for="${inputId}">Label</label>`],
             tags: ['wcag-a', 'forms']
           });
         }
-      } else if (!hasId && !hasAriaLabel && !hasAriaLabelledBy) {
-        line = content.substring(0, match.index).split('\n').length;
-        violations.push({
-          id: 'input-no-id-or-label',
-          severity: 'error',
-          wcagCriteria: ['1.3.1', '3.3.2'],
-          title: 'Form input has no label or id',
-          description: 'Input needs an id with matching label or aria-label',
-          help: 'Add id and <label for> or aria-label',
-          line,
-          column: 1,
-          code: match[0],
-          fixSuggestions: [
-            'Add id="inputId" and <label for="inputId">Label</label>',
-            'Add aria-label="description"'
-          ],
-          tags: ['wcag-a', 'forms']
-        });
       }
     }
 
@@ -150,9 +126,10 @@ function analyzeFile(content, filePath) {
     const linkRegex = /<a[^>]*>(.*?)<\/a>/gi;
     while ((match = linkRegex.exec(content)) !== null) {
       const linkText = match[1].replace(/<[^>]+>/g, '').trim().toLowerCase();
-      const badTexts = ['click here', 'here', 'read more', 'more', 'link'];
+      const badTexts = ['click here', 'here', 'read more', 'more', 'link', 'learn more', 'see more'];
+      const hasAriaLabel = match[0].includes('aria-label');
       
-      if (badTexts.includes(linkText)) {
+      if (!hasAriaLabel && badTexts.includes(linkText)) {
         line = content.substring(0, match.index).split('\n').length;
         violations.push({
           id: 'link-non-descriptive',
@@ -160,24 +137,185 @@ function analyzeFile(content, filePath) {
           wcagCriteria: ['2.4.4'],
           title: 'Link text not descriptive',
           description: `Link text "${linkText}" is not meaningful out of context`,
-          help: 'Use descriptive link text that makes sense when read alone',
+          help: 'Use descriptive link text',
+          line,
+          column: 1,
+          code: match[0],
+          fixSuggestions: ['Use descriptive text instead of "' + linkText + '"'],
+          tags: ['wcag-aa', 'links']
+        });
+      }
+    }
+
+    // 6. Placeholder used as label
+    const inputWithPlaceholderRegex = /<input[^>]*placeholder=["']([^"']+)["'][^>]*>/gi;
+    while ((match = inputWithPlaceholderRegex.exec(content)) !== null) {
+      const hasAriaLabel = match[0].includes('aria-label');
+      const hasAriaLabelledBy = match[0].includes('aria-labelledby');
+      const hasId = /id=["']([^"']+)["']/.exec(match[0]);
+      
+      if (!hasAriaLabel && !hasAriaLabelledBy) {
+        let hasLabel = false;
+        if (hasId) {
+          const labelRegex = new RegExp(`<label[^>]*for=["']${hasId[1]}["']`, 'i');
+          hasLabel = labelRegex.test(content);
+        }
+        
+        if (!hasLabel) {
+          line = content.substring(0, match.index).split('\n').length;
+          violations.push({
+            id: 'placeholder-as-label',
+            severity: 'error',
+            wcagCriteria: ['3.3.2'],
+            title: 'Placeholder used as label',
+            description: 'Placeholders disappear when user types and are not accessible to screen readers',
+            help: 'Use proper <label> element instead of placeholder',
+            line,
+            column: 1,
+            code: match[0],
+            fixSuggestions: [
+              'Add <label> element with for attribute',
+              'Keep placeholder as hint, but add proper label'
+            ],
+            tags: ['wcag-a', 'forms']
+          });
+        }
+      }
+    }
+
+    // 7. Heading hierarchy check
+    const headingRegex = /<h([1-6])[^>]*>/gi;
+    const headings = [];
+    while ((match = headingRegex.exec(content)) !== null) {
+      headings.push({
+        level: parseInt(match[1]),
+        line: content.substring(0, match.index).split('\n').length
+      });
+    }
+    
+    if (headings.length > 0) {
+      // Check if h1 exists
+      const hasH1 = headings.some(h => h.level === 1);
+      if (!hasH1) {
+        violations.push({
+          id: 'missing-h1',
+          severity: 'warning',
+          wcagCriteria: ['1.3.1', '2.4.6'],
+          title: 'Missing h1 heading',
+          description: 'Page should have a single h1 heading for main content',
+          help: 'Add an h1 heading for the main page title',
+          line: headings[0]?.line || 1,
+          column: 1,
+          code: '',
+          fixSuggestions: ['Add <h1>Main Page Title</h1>'],
+          tags: ['wcag-aa', 'headings']
+        });
+      }
+      
+      // Check for skipped heading levels
+      for (let i = 1; i < headings.length; i++) {
+        if (headings[i].level > headings[i-1].level + 1) {
+          violations.push({
+            id: 'heading-level-skip',
+            severity: 'warning',
+            wcagCriteria: ['1.3.1'],
+            title: 'Skipped heading level',
+            description: `Heading level jumps from h${headings[i-1].level} to h${headings[i].level}`,
+            help: 'Use sequential heading levels (h1, h2, h3, etc.)',
+            line: headings[i].line,
+            column: 1,
+            code: '',
+            fixSuggestions: [`Change to h${headings[i-1].level + 1} or adjust previous heading`],
+            tags: ['wcag-aa', 'headings']
+          });
+        }
+      }
+    }
+
+    // 8. Duplicate IDs
+    const idRegex = /id=["']([^"']+)["']/gi;
+    const ids = new Map();
+    while ((match = idRegex.exec(content)) !== null) {
+      const id = match[1];
+      if (ids.has(id)) {
+        line = content.substring(0, match.index).split('\n').length;
+        violations.push({
+          id: 'duplicate-id',
+          severity: 'error',
+          wcagCriteria: ['4.1.1'],
+          title: 'Duplicate ID found',
+          description: `ID "${id}" is used multiple times. IDs must be unique.`,
+          help: 'Ensure each ID is unique',
           line,
           column: 1,
           code: match[0],
           fixSuggestions: [
-            'Use descriptive text like "Read the full article" instead of "Read more"',
-            'Add aria-label with descriptive text'
+            `Change one of the duplicate IDs to a unique value`,
+            'Use class instead of id if uniqueness is not required'
           ],
-          tags: ['wcag-aa', 'links']
+          tags: ['wcag-a', 'html']
+        });
+      } else {
+        ids.set(id, line);
+      }
+    }
+
+    // 9. ARIA labelledby references
+    const ariaLabelledByRegex = /aria-labelledby=["']([^"']+)["']/gi;
+    while ((match = ariaLabelledByRegex.exec(content)) !== null) {
+      const id = match[1];
+      const idRegex = new RegExp(`id=["']${id}["']`, 'i');
+      if (!idRegex.test(content)) {
+        line = content.substring(0, match.index).split('\n').length;
+        violations.push({
+          id: 'aria-labelledby-invalid',
+          severity: 'error',
+          wcagCriteria: ['4.1.2'],
+          title: 'aria-labelledby references non-existent element',
+          description: `aria-labelledby="${id}" references an element that doesn't exist`,
+          help: 'Ensure the referenced id exists in the document',
+          line,
+          column: 1,
+          code: match[0],
+          fixSuggestions: [
+            `Add id="${id}" to the element that should label this`,
+            'Or use aria-label instead'
+          ],
+          tags: ['wcag-a', 'aria']
+        });
+      }
+    }
+
+    // 10. Custom interactive elements missing keyboard support
+    const customInteractiveRegex = /<(div|span)[^>]*(role=["'](button|link|tab|menuitem)["'])[^>]*>/gi;
+    while ((match = customInteractiveRegex.exec(content)) !== null) {
+      const hasOnKeyDown = match[0].includes('onKeyDown') || match[0].includes('onkeydown');
+      const hasTabIndex = match[0].includes('tabIndex') || match[0].includes('tabindex');
+      
+      if (!hasOnKeyDown || !hasTabIndex) {
+        line = content.substring(0, match.index).split('\n').length;
+        violations.push({
+          id: 'custom-interactive-missing-keyboard',
+          severity: 'error',
+          wcagCriteria: ['2.1.1', '2.1.2'],
+          title: 'Custom interactive element missing keyboard support',
+          description: 'Elements with ARIA roles must support keyboard interaction',
+          help: 'Add onKeyDown handler and tabIndex',
+          line,
+          column: 1,
+          code: match[0],
+          fixSuggestions: [
+            'Add tabIndex={0} for keyboard focus',
+            'Add onKeyDown handler for Enter and Space keys'
+          ],
+          tags: ['wcag-a', 'keyboard']
         });
       }
     }
   }
 
-  // === HTML-ONLY CHECKS ===
+  // HTML-only checks
   if (['.html', '.htm'].includes(ext)) {
-    
-    // 6. Missing page language
     if (!/<html[^>]*lang=/i.test(content)) {
       violations.push({
         id: 'html-missing-lang',
@@ -185,33 +323,16 @@ function analyzeFile(content, filePath) {
         wcagCriteria: ['3.1.1'],
         title: 'HTML missing lang attribute',
         description: 'The <html> element must have a lang attribute',
-        help: 'Add lang attribute to specify page language',
+        help: 'Add lang attribute',
         line: 1,
         column: 1,
-        code: content.match(/<html[^>]*>/i)?.[0] || '<html>',
+        code: '<html>',
         fixSuggestions: ['Add lang="en" to <html> tag'],
-        tags: ['wcag-a', 'language']
+        tags: ['wcag-a']
       });
     }
 
-    // 7. Missing page title
-    if (!/<title[^>]*>[\s\S]*?<\/title>/i.test(content)) {
-      violations.push({
-        id: 'html-missing-title',
-        severity: 'error',
-        wcagCriteria: ['2.4.2'],
-        title: 'Page missing title',
-        description: 'Every HTML page must have a descriptive <title>',
-        help: 'Add <title> element in <head>',
-        line: 1,
-        column: 1,
-        code: '<head>',
-        fixSuggestions: ['Add <title>Page Title</title> in the <head> section'],
-        tags: ['wcag-a', 'title']
-      });
-    }
-
-    // 8. Iframe missing title
+    // Iframe missing title
     const iframeRegex = /<iframe[^>]*>/gi;
     while ((match = iframeRegex.exec(content)) !== null) {
       if (!match[0].includes('title=')) {
@@ -233,10 +354,9 @@ function analyzeFile(content, filePath) {
     }
   }
 
-  // === CSS/SCSS CHECKS ===
+  // CSS/SCSS checks
   if (['.css', '.scss'].includes(ext)) {
-    
-    // 9. Missing focus styles
+    // 1. Missing focus styles (only warn if no focus styles at all)
     if (!/:focus[^}]*/g.test(content)) {
       violations.push({
         id: 'missing-focus-styles',
@@ -244,20 +364,16 @@ function analyzeFile(content, filePath) {
         wcagCriteria: ['2.4.7'],
         title: 'No focus styles defined',
         description: 'CSS should include :focus styles for keyboard navigation',
-        help: 'Add :focus and :focus-visible styles',
+        help: 'Add :focus styles',
         line: 1,
         column: 1,
         code: '',
-        fixSuggestions: [
-          'Add :focus styles for interactive elements',
-          'Use :focus-visible for better UX'
-        ],
-        tags: ['wcag-aa', 'focus', 'keyboard']
+        fixSuggestions: ['Add :focus styles for interactive elements'],
+        tags: ['wcag-aa', 'focus']
       });
     }
 
-    // 10. outline: none or outline: 0 without alternative
-    // Match outline: none/0 with optional !important and semicolon
+    // 2. outline: none or outline: 0 without alternative
     const outlineNoneRegex = /outline\s*:\s*(none|0)(\s*!important)?\s*[;!]/gi;
     while ((match = outlineNoneRegex.exec(content)) !== null) {
       line = content.substring(0, match.index).split('\n').length;
@@ -276,10 +392,7 @@ function analyzeFile(content, filePath) {
       }
       
       // Check if there's an alternative focus indicator in the same rule
-      // Look for box-shadow, border, or other outline values in the same block
       const hasAlternative = /(box-shadow\s*:|border\s*[:\-]|outline\s*:\s*(2|3|4|5|auto|dotted|dashed|solid|double|groove|ridge|inset|outset|\d+px))/i.test(ruleBlock);
-      
-      // Also check if this is in a :focus rule that has alternatives
       const isInFocusRule = /:focus[^}]*\{[^}]*outline\s*:\s*(none|0)/i.test(ruleBlock);
       
       if (!hasAlternative || isInFocusRule) {
@@ -302,7 +415,7 @@ function analyzeFile(content, filePath) {
       }
     }
 
-    // 11. Very small font sizes
+    // 3. Very small font sizes
     const fontSizeRegex = /font-size\s*:\s*(\d+(?:\.\d+)?)\s*px/gi;
     while ((match = fontSizeRegex.exec(content)) !== null) {
       const fontSize = parseFloat(match[1]);
@@ -346,7 +459,7 @@ function analyzeFile(content, filePath) {
       }
     }
 
-    // 12. Very small touch targets
+    // 4. Very small touch targets
     const sizeRegex = /(width|height|min-width|min-height)\s*:\s*(\d+(?:\.\d+)?)\s*px/gi;
     while ((match = sizeRegex.exec(content)) !== null) {
       const size = parseFloat(match[2]);
@@ -381,7 +494,7 @@ function analyzeFile(content, filePath) {
       }
     }
 
-    // 13. display: none on potentially interactive elements
+    // 5. display: none on potentially interactive elements
     const displayNoneRegex = /\.([\w-]+)\s*\{[^}]*display\s*:\s*none/gi;
     while ((match = displayNoneRegex.exec(content)) !== null) {
       const className = match[1];
@@ -408,7 +521,7 @@ function analyzeFile(content, filePath) {
       }
     }
 
-    // 14. color: transparent
+    // 6. color: transparent
     const transparentRegex = /color\s*:\s*transparent/gi;
     while ((match = transparentRegex.exec(content)) !== null) {
       line = content.substring(0, match.index).split('\n').length;
@@ -430,7 +543,7 @@ function analyzeFile(content, filePath) {
       });
     }
 
-    // 15. pointer-events: none on interactive elements
+    // 7. pointer-events: none on interactive elements
     const pointerEventsRegex = /(button|a|input|select|textarea)[^}]*\{[^}]*pointer-events\s*:\s*none/gi;
     if (pointerEventsRegex.test(content)) {
       const pointerMatch = content.match(/(button|a|input|select|textarea)[^}]*\{[^}]*pointer-events\s*:\s*none/gi);
@@ -461,149 +574,3 @@ function analyzeFile(content, filePath) {
   return violations;
 }
 
-/**
- * Scan a file and return results
- */
-function scanFile(filePath) {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`File not found: ${filePath}`);
-  }
-
-  const content = fs.readFileSync(filePath, 'utf8');
-  const violations = analyzeFile(content, filePath);
-  const ext = path.extname(filePath).toLowerCase();
-  
-  let fileType = 'unknown';
-  if (['.jsx'].includes(ext)) fileType = 'jsx';
-  else if (['.tsx'].includes(ext)) fileType = 'tsx';
-  else if (['.js'].includes(ext)) fileType = 'js';
-  else if (['.ts'].includes(ext)) fileType = 'ts';
-  else if (['.html', '.htm'].includes(ext)) fileType = 'html';
-  else if (['.css'].includes(ext)) fileType = 'css';
-  else if (['.scss'].includes(ext)) fileType = 'scss';
-
-  return {
-    filePath,
-    fileType,
-    content,
-    violations,
-    statistics: {
-      totalViolations: violations.length,
-      errors: violations.filter(v => v.severity === 'error').length,
-      warnings: violations.filter(v => v.severity === 'warning').length,
-      info: violations.filter(v => v.severity === 'info').length,
-      estimatedFixTime: `${Math.max(violations.length * 2, 1)} minutes`
-    },
-    metadata: {
-      lineCount: content.split('\n').length,
-      analyzedAt: new Date().toISOString()
-    }
-  };
-}
-
-/**
- * Format and print human-readable results
- */
-function printResults(result) {
-  console.log(`\n📄 File: ${result.filePath}`);
-  console.log(`🗂️  File Type: ${result.fileType.toUpperCase()}`);
-  console.log(`📊 Lines: ${result.metadata.lineCount}`);
-  
-  if (result.violations.length === 0) {
-    console.log('✅ Result: No accessibility violations found! 🎉');
-  } else {
-    console.log(`❌ Result: Found ${result.violations.length} accessibility violation(s):\n`);
-    
-    result.violations.forEach((violation, index) => {
-      console.log(`   ${index + 1}. [${violation.severity.toUpperCase()}] ${violation.title}`);
-      console.log(`      📍 Line: ${violation.line}`);
-      console.log(`      📝 ${violation.description}`);
-      console.log(`      🔧 ${violation.help}`);
-      console.log(`      📚 WCAG: ${violation.wcagCriteria.join(', ')}`);
-      if (violation.fixSuggestions && violation.fixSuggestions.length > 0) {
-        console.log(`      💡 Suggestions:`);
-        violation.fixSuggestions.forEach(suggestion => {
-          console.log(`         - ${suggestion}`);
-        });
-      }
-      console.log();
-    });
-    
-    console.log(`\n📈 Statistics:`);
-    console.log(`   Errors: ${result.statistics.errors}`);
-    console.log(`   Warnings: ${result.statistics.warnings}`);
-    console.log(`   Estimated fix time: ${result.statistics.estimatedFixTime}`);
-  }
-  
-  console.log('─'.repeat(80));
-}
-
-/**
- * Format results as JSON for CI/CD
- */
-function formatAsJSON(result) {
-  return JSON.stringify({
-    file: result.filePath,
-    type: result.fileType,
-    violations: result.violations.map(v => ({
-      id: v.id,
-      severity: v.severity,
-      title: v.title,
-      description: v.description,
-      line: v.line,
-      wcag: v.wcagCriteria,
-      fix: v.help
-    })),
-    summary: result.statistics
-  }, null, 2);
-}
-
-/**
- * Main CLI entry point
- */
-function main() {
-  const args = process.argv.slice(2);
-  
-  if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-    console.log('Usage: node cli-scanner.js <file-path> [--json]');
-    console.log('');
-    console.log('  Analyze a file for accessibility violations');
-    console.log('  Supports: .js, .jsx, .ts, .tsx, .html, .htm, .css, .scss');
-    console.log('');
-    console.log('Options:');
-    console.log('  --json    Output results in JSON format for CI/CD integration');
-    console.log('');
-    console.log('Exit codes:');
-    console.log('  0 = No violations');
-    console.log('  3 = Violations found');
-    console.log('  1 = Error (file not found, etc.)');
-    process.exit(0);
-  }
-
-  const jsonOutput = args.includes('--json');
-  const filePath = args.find(arg => !arg.startsWith('--'));
-
-  if (!filePath) {
-    console.error('Error: No file path provided');
-    process.exit(1);
-  }
-
-  try {
-    const result = scanFile(filePath);
-    
-    if (jsonOutput) {
-      console.log(formatAsJSON(result));
-    } else {
-      printResults(result);
-    }
-    
-    // Exit with code 3 if violations found (so PR checks fail)
-    process.exit(result.violations.length > 0 ? 3 : 0);
-    
-  } catch (error) {
-    console.error('Error:', error.message);
-    process.exit(1);
-  }
-}
-
-main();

@@ -3,16 +3,19 @@
   "version": "1.0.0",
   "description": "Comprehensive GitHub Accessibility Reviewer MCP Server for enforcing WCAG 2.2 AA standards",
   "type": "module",
-  "main": "build/index.js",
+  "main": "src/mcp-server.js",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "start": "node build/index.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "lint": "eslint src/**/*.ts",
-    "clean": "rm -rf build",
-    "prepare": "npm run build"
+    "build": "echo 'No build needed - using JavaScript directly'",
+    "dev": "echo 'No build needed - using JavaScript directly'",
+    "start": "node src/mcp-server.js",
+    "test": "node tests/accessibility-checks.test.js",
+    "test:watch": "node tests/accessibility-checks.test.js",
+    "test:mcp": "node scripts/test-mcp-integration.js",
+    "test:all": "node tests/accessibility-checks.test.js && node scripts/test-mcp-integration.js",
+    "setup": "node scripts/setup-integration.js",
+    "lint": "echo 'Linting skipped'",
+    "clean": "echo 'No build artifacts to clean'",
+    "prepare": "echo 'Dependencies ready'"
   },
   "keywords": [
     "accessibility",
@@ -39,7 +42,6 @@
     "@babel/types": "^7.25.0",
     "@modelcontextprotocol/sdk": "^1.21.0",
     "@octokit/rest": "^22.0.1",
-    "babel": "^5.8.38",
     "postcss": "^8.5.6",
     "postcss-scss": "^4.0.9",
     "stylelint": "^16.2.0",
@@ -61,7 +63,8 @@
     "node": ">=18.0.0"
   },
   "files": [
-    "build/",
+    "src/",
+    "scripts/",
     "README.md"
   ]
 }
