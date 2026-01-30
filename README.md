@@ -204,23 +204,20 @@ Automatically check every pull request for accessibility violations.
 
 ### Setup (Quick Version)
 
-1. **Copy MCP server to your repository:**
+1. **Run the one-command installer:**
 ```bash
-mkdir -p .github/a11y-mcp
-cp src/mcp-server.js .github/a11y-mcp/
-cp package.json package-lock.json .github/a11y-mcp/
-cd .github/a11y-mcp && npm ci && cd ../..
+# From the a11y-mcp repo
+node scripts/setup-integration.js
 ```
 
-2. **Add workflow file:**
-```bash
-mkdir -p .github/workflows
-cp github-actions/accessibility-review.yml .github/workflows/
-```
+This creates a self-contained integration under:
+- `.github/a11y-mcp/` (MCP server + PR analyzer + minimal dependencies)
+- `.github/workflows/accessibility-review.yml` (GitHub Actions workflow)
+- `.a11y/config.json` (config)
 
-3. **Commit and push:**
+2. **Commit and push:**
 ```bash
-git add .github/
+git add .github/ .a11y/ .gitignore
 git commit -m "Add MCP accessibility checks"
 git push
 ```
@@ -550,10 +547,10 @@ npm list @modelcontextprotocol/sdk
 **Q: GitHub Actions workflow doesn't run**
 ```bash
 # Verify workflow file exists
-ls .github/workflows/accessibility-check.yml
+ls .github/workflows/accessibility-review.yml
 
 # Check YAML syntax is valid
-cat .github/workflows/accessibility-check.yml
+cat .github/workflows/accessibility-review.yml
 ```
 
 **Q: "Module not found" error in GitHub Actions**

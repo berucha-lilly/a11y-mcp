@@ -22,9 +22,9 @@ const githubDir = path.join(process.cwd(), '.github');
 const workflowsDir = path.join(githubDir, 'workflows');
 const a11yDir = path.join(githubDir, 'a11y-mcp');
 const a11yCoreDir = path.join(a11yDir, 'core');
-const scriptsDir = path.join(process.cwd(), 'scripts');
 
-[githubDir, workflowsDir, a11yDir, a11yCoreDir, scriptsDir].forEach(dir => {
+
+[githubDir, workflowsDir, a11yDir, a11yCoreDir].forEach(dir => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
     console.log(`   ✅ Created ${dir}`);
@@ -38,8 +38,8 @@ const filesToCopy = [
   { src: 'src/core/hybrid-analyzer.js', dst: path.join(a11yDir, 'core', 'hybrid-analyzer.js') },
   { src: 'src/core/regex-analyzer.js', dst: path.join(a11yDir, 'core', 'regex-analyzer.js') },
   { src: 'scripts/color-contrast.js', dst: path.join(a11yDir, 'color-contrast.js') },
-  { src: 'scripts/analyze-pr-mcp.js', dst: path.join(scriptsDir, 'analyze-pr-mcp.js') },
-  { src: 'scripts/mcp-client.js', dst: path.join(scriptsDir, 'mcp-client.js') }
+  { src: 'scripts/analyze-pr-mcp.js', dst: path.join(a11yDir, 'analyze-pr-mcp.js') },
+  { src: 'scripts/mcp-client.js', dst: path.join(a11yDir, 'mcp-client.js') }
 ];
 
 filesToCopy.forEach(({ src, dst }) => {
@@ -87,7 +87,7 @@ if (fs.existsSync(packageJsonPath)) {
   
   fs.writeFileSync(
     path.join(a11yDir, 'package.json'),
-    JSON.stringify(a11yPackageJson, null, 2)
+    `${JSON.stringify(a11yPackageJson, null, 2)}\n`
   );
   console.log('   ✅ Created package.json');
 }
@@ -150,7 +150,7 @@ const defaultConfig = {
 
 const configPath = path.join(configDir, 'config.json');
 if (!fs.existsSync(configPath)) {
-  fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
+  fs.writeFileSync(configPath, `${JSON.stringify(defaultConfig, null, 2)}\n`);
   console.log(`   ✅ Created default config → ${path.relative(process.cwd(), configPath)}`);
 } else {
   console.log(`   ℹ️  Config already exists at ${path.relative(process.cwd(), configPath)}`);
@@ -173,10 +173,10 @@ try {
   const packageLockPath = path.join(a11yDir, 'package-lock.json');
   if (fs.existsSync(packageLockPath)) {
     console.log('   📦 Running npm ci (using package-lock.json)...');
-    execSync('npm ci --production', { stdio: 'inherit' });
+    execSync('npm ci --omit=dev', { stdio: 'inherit' });
   } else {
     console.log('   📦 Running npm install...');
-    execSync('npm install --production', { stdio: 'inherit' });
+    execSync('npm install --omit=dev', { stdio: 'inherit' });
   }
   
   console.log('   ✅ Dependencies installed successfully');
@@ -203,6 +203,7 @@ if (fs.existsSync(gitignorePath)) {
 
 const entries = [
   '.github/a11y-mcp/node_modules',
+  '.github/a11y-mcp/a11y-results.json',
   '.a11y/cache',
   'a11y-results.json'
 ];
@@ -216,7 +217,8 @@ entries.forEach(entry => {
 });
 
 if (updated) {
-  fs.writeFileSync(gitignorePath, gitignoreContent);
+  const normalized = gitignoreContent.endsWith('\n') ? gitignoreContent : `${gitignoreContent}\n`;
+  fs.writeFileSync(gitignorePath, normalized);
   console.log('   ✅ Updated .gitignore');
 } else {
   console.log('   ℹ️  .gitignore already up to date');
@@ -227,7 +229,7 @@ console.log('\n' + '='.repeat(60));
 console.log('✅ Setup Complete!\n');
 console.log('📋 Next Steps:');
 console.log('   1. Review configuration: .a11y/config.json');
-console.log('   2. Commit changes: git add .github/ .a11y/ scripts/');
+console.log('   2. Commit changes: git add .github/ .a11y/');
 console.log('   3. Push to trigger first check: git push');
 console.log('   4. Create a test PR to verify it works');
 if (fs.existsSync(path.join(a11yDir, 'node_modules'))) {

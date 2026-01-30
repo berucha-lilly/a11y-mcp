@@ -24,6 +24,10 @@ jobs:
     name: 🔍 Accessibility Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
     
     steps:
       - name: 🔄 Checkout code
@@ -150,7 +154,7 @@ jobs:
           
           # Test MCP server connection first
           echo "🔌 Testing MCP server connection..."
-          node scripts/mcp-client.js test || {
+          node .github/a11y-mcp/mcp-client.js test || {
             echo "❌ MCP server test failed. Checking if server exists..."
             if [ ! -f "src/mcp-server.js" ]; then
               echo "❌ MCP server not found. Please ensure src/mcp-server.js exists."
@@ -161,15 +165,15 @@ jobs:
           
           # Run the hybrid analysis (production-ready)
           echo "📊 Running PR analysis with hybrid analyzer (production)..."
-          node scripts/analyze-pr-mcp.js
+          node .github/a11y-mcp/analyze-pr-mcp.js
           
           # Check results
-          if [ -f "a11y-results.json" ]; then
+          if [ -f ".github/a11y-mcp/a11y-results.json" ]; then
             echo "✅ Analysis completed successfully"
-            VIOLATIONS=$(cat a11y-results.json | jq -r '.summary.totalViolations // 0')
-            ERRORS=$(cat a11y-results.json | jq -r '.summary.errors // 0')
-            WARNINGS=$(cat a11y-results.json | jq -r '.summary.warnings // 0')
-            ANALYZED=$(cat a11y-results.json | jq -r '.analyzedFiles // 0')
+            VIOLATIONS=$(cat .github/a11y-mcp/a11y-results.json | jq -r '.summary.totalViolations // 0')
+            ERRORS=$(cat .github/a11y-mcp/a11y-results.json | jq -r '.summary.errors // 0')
+            WARNINGS=$(cat .github/a11y-mcp/a11y-results.json | jq -r '.summary.warnings // 0')
+            ANALYZED=$(cat .github/a11y-mcp/a11y-results.json | jq -r '.analyzedFiles // 0')
             
             echo "📊 Results: $VIOLATIONS total violations ($ERRORS errors, $WARNINGS warnings)"
             echo "📁 Files analyzed: $ANALYZED"
@@ -205,15 +209,19 @@ jobs:
             const fs = require('fs');
             
             // Read analysis results
-            if (!fs.existsSync('a11y-results.json')) {
+            if (!fs.existsSync('.github/a11y-mcp/a11y-results.json')) {
               console.log('⚠️  No results file found. Skipping comment.');
               return;
             }
             
-            const results = JSON.parse(fs.readFileSync('a11y-results.json', 'utf8'));
+            const results = JSON.parse(fs.readFileSync('.github/a11y-mcp/a11y-results.json', 'utf8'));
             
             // Create comment body
-            let comment = `## 🔍 Accessibility Review Results (via MCP)\n\n`;
+            let comment = `## 🔍 Accessibility Reviewer Results \n\n`;
+            comment += `**Powered by:** Model Context Protocol (MCP) Server\n`;
+            comment += `**Files Checked:** ${results.analyzedFiles}\n`;
+            comment += `**Files with Violations:** ${results.filesWithViolations}\n`;
+            comment += `**Total Violations:** ${results.summary.totalViolations} (${results.summary.errors} errors, ${results.summary.warnings} warnings)\n\n`;
             
             if (results.summary.totalViolations === 0) {
               comment += `✅ **No accessibility violations found!**\n\n`;
@@ -224,45 +232,49 @@ jobs:
               comment += `**Found ${results.summary.totalViolations} accessibility violation(s):**\n\n`;
               
               // Group violations by file
-              const violationsByFile = {};
-              results.violations.forEach(v => {
-                if (!violationsByFile[v.file]) {
-                  violationsByFile[v.file] = [];
-                }
-                violationsByFile[v.file].push(v);
-              });
+              if (results.files && results.files.length > 0) {
+                results.files.forEach(fileResult => {
+                  if (fileResult.violations.length > 0) {
+                    comment += `#### 📄 \`${fileResult.filePath}\`\n\n`;
+                    comment += `Found ${fileResult.violations.length} violation(s):\n\n`;
+                    
+                    fileResult.violations.forEach((v, index) => {
+                      const severityLabel = v.severity === 'error' ? '[ERROR]' : '[WARNING]';
+                      comment += `${index + 1}. **${severityLabel}** ${v.message}\n`;
+                      if (v.line) {
+                        comment += `   - **Line:** ${v.line}\n`;
+                      }
+                      if (v.description) {
+                        comment += `   - **Issue:** ${v.description}\n`;
+                      }
+                      if (v.fix) {
+                        comment += `   - **Fix:** ${v.fix}\n`;
+                      }
+                      if (v.wcagCriteria && v.wcagCriteria.length > 0) {
+                        comment += `   - **WCAG:** ${v.wcagCriteria.join(', ')}\n`;
+                      }
+                      if (v.suggestions && v.suggestions.length > 0) {
+                        comment += `   - **Suggestions:**\n`;
+                        v.suggestions.forEach(suggestion => {
+                          comment += `     - ${suggestion}\n`;
+                        });
+                      }
+                      comment += `\n`;
+                    });
+                    
+                    comment += `\n`;
+                  }
+                });
+              }
               
+              comment += `### 📊 Summary by Severity\n\n`;
               if (results.summary.errors > 0) {
-                comment += `### 🔴 Critical Errors (Must Fix)\n\n`;
-                const errors = results.violations.filter(v => v.severity === 'error');
-                errors.forEach(v => {
-                  comment += `- **${v.title}** in \`${v.file}\` (Line ${v.line})\n`;
-                  comment += `  - ${v.description}\n`;
-                  if (v.wcagCriteria && v.wcagCriteria.length > 0) {
-                    comment += `  - WCAG: ${v.wcagCriteria.join(', ')}\n`;
-                  }
-                  comment += `  - 💡 Fix: ${v.fixSuggestion || v.help}\n\n`;
-                });
+                comment += `- 🔴 **${results.summary.errors} Critical Error(s)** - Must fix before merging\n`;
               }
-              
               if (results.summary.warnings > 0) {
-                comment += `### 🟡 Warnings (Recommended)\n\n`;
-                const warnings = results.violations.filter(v => v.severity === 'warning');
-                warnings.forEach(v => {
-                  comment += `- **${v.title}** in \`${v.file}\` (Line ${v.line})\n`;
-                  comment += `  - ${v.description}\n`;
-                  if (v.wcagCriteria && v.wcagCriteria.length > 0) {
-                    comment += `  - WCAG: ${v.wcagCriteria.join(', ')}\n`;
-                  }
-                  comment += `  - 💡 Fix: ${v.fixSuggestion || v.help}\n\n`;
-                });
+                comment += `- 🟡 **${results.summary.warnings} Warning(s)** - Recommended to fix\n`;
               }
-              
-              comment += `### 📊 Summary\n\n`;
-              comment += `- **Files Analyzed**: ${results.analyzedFiles}\n`;
-              comment += `- **Total Violations**: ${results.summary.totalViolations}\n`;
-              comment += `- **Critical Errors**: ${results.summary.errors}\n`;
-              comment += `- **Warnings**: ${results.summary.warnings}\n\n`;
+              comment += `\n`;
             }
             
             comment += `### 📚 Resources\n\n`;
@@ -271,7 +283,7 @@ jobs:
             comment += `- [Accessibility Testing Tools](https://github.com/dequelabs/axe-core)\n\n`;
             
             comment += `---\n`;
-            comment += `*Analysis performed by A11y-MCP Server using Model Context Protocol*\n`;
+            comment += `*Analysis performed by A11y-MCP Server*\n`;
             
             // Post comment to PR
             await github.rest.issues.createComment({
@@ -308,7 +320,7 @@ jobs:
         with:
           name: accessibility-analysis-results
           path: |
-            a11y-results.json
+            .github/a11y-mcp/a11y-results.json
             accessibility-summary.md
           retention-days: 30
 
@@ -319,5 +331,5 @@ jobs:
           echo "🔧 Please fix the critical accessibility violations before merging"
           echo ""
           echo "Errors found:"
-          cat a11y-results.json | jq -r '.violations[] | select(.severity == "error") | "- \(.title) in \(.file)"'
+          cat .github/a11y-mcp/a11y-results.json | jq -r '.files[]?.violations[]? | select(.severity == "error") | "- \(.id) in \(.message)"'
           exit 1

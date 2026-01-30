@@ -23,6 +23,7 @@ function callMCPServer(method, params = {}) {
     // 3. Environment variable override
     const possiblePaths = [
       process.env.MCP_SERVER_PATH,
+      path.join(__dirname, 'mcp-server.js'),
       path.join(__dirname, '..', 'src', 'mcp-server.js'),
       path.join(__dirname, '..', '.github', 'a11y-mcp', 'mcp-server.js'),
       path.join(process.cwd(), '.github', 'a11y-mcp', 'mcp-server.js')

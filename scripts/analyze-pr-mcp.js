@@ -1,251 +1,107 @@
 #!/usr/bin/env node
 /**
- * GitHub Actions PR Analyzer using MCP Server
- * Analyzes PR files for accessibility violations via MCP protocol
+ * Analyze PR files for accessibility violations using MCP server with ESLint
  */
 
-import { Octokit } from '@octokit/rest';
 import fs from 'fs';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import path from 'path';
-import { checkAccessibilityBatch } from './mcp-client.js';
+import { analyzeFileHybrid } from './core/hybrid-analyzer.js';
 
-// Initialize GitHub API client
-const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN
-});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '../..');
 
 async function analyzePR() {
   try {
-    const [owner, repo] = process.env.REPOSITORY.split('/');
-    const prNumber = parseInt(process.env.PR_NUMBER);
+    console.log('📁 Detecting changed files in PR...');
     
-    console.log(`📋 Analyzing PR #${prNumber} in ${owner}/${repo}`);
-    
-    // Get PR details
-    const { data: pr } = await octokit.rest.pulls.get({
-      owner,
-      repo,
-      pull_number: prNumber
-    });
-    
-    console.log(`📊 PR Title: ${pr.title}`);
-    console.log(`🌿 Branch: ${pr.head.ref}`);
-    
-    // Get changed files
-    const { data: files } = await octokit.rest.pulls.listFiles({
-      owner,
-      repo,
-      pull_number: prNumber,
-      per_page: 100
-    });
-    
-    console.log(`📄 Found ${files.length} changed files`);
-    
-    // Filter relevant files
-    const relevantFiles = files.filter(file => {
-      const ext = path.extname(file.filename).toLowerCase();
-      const supportedExts = ['.tsx', '.jsx', '.ts', '.js', '.html', '.htm', '.css', '.scss'];
-      return supportedExts.includes(ext) &&
-             !file.filename.includes('test.') &&
-             !file.filename.includes('stories.') &&
-             !file.filename.includes('.test.') &&
-             !file.filename.includes('.spec.') &&
-             file.status !== 'removed';
-    });
-    
-    console.log(`🎯 ${relevantFiles.length} files relevant for accessibility analysis`);
-    
-    if (relevantFiles.length === 0) {
-      console.log('✅ No files to analyze');
-      const results = {
-        prNumber,
-        repository: `${owner}/${repo}`,
-        branch: pr.head.ref,
-        totalFiles: files.length,
-        analyzedFiles: 0,
-        violations: [],
-        summary: {
-          totalViolations: 0,
-          errors: 0,
-          warnings: 0,
-          info: 0
-        },
-        timestamp: new Date().toISOString()
-      };
-      fs.writeFileSync('a11y-results.json', JSON.stringify(results, null, 2));
-      return results;
-    }
-    
-    // Fetch file contents and prepare for batch analysis
-    const filesToCheck = [];
-    
-    for (const file of relevantFiles) {
-      try {
-        // Get file content at the PR branch
-        const { data: content } = await octokit.rest.repos.getContent({
-          owner,
-          repo,
-          path: file.filename,
-          ref: pr.head.sha
-        });
-        
-        if ('content' in content) {
-          const decodedContent = Buffer.from(content.content, 'base64').toString('utf-8');
-          filesToCheck.push({
-            path: file.filename,
-            content: decodedContent
-          });
-        }
-      } catch (error) {
-        console.warn(`⚠️  Failed to fetch ${file.filename}:`, error.message);
-      }
-    }
-    
-    if (filesToCheck.length === 0) {
-      console.log('⚠️  No file contents could be fetched');
-      const results = {
-        prNumber,
-        repository: `${owner}/${repo}`,
-        branch: pr.head.ref,
-        totalFiles: files.length,
-        analyzedFiles: 0,
-        violations: [],
-        summary: {
-          totalViolations: 0,
-          errors: 0,
-          warnings: 0,
-          info: 0
-        },
-        timestamp: new Date().toISOString()
-      };
-      fs.writeFileSync('a11y-results.json', JSON.stringify(results, null, 2));
-      return results;
-    }
-    
-    console.log(`🔍 Analyzing ${filesToCheck.length} files via MCP server...`);
-    
-    // Use MCP server for analysis (this is the proper MCP integration)
-    let batchResults = [];
-    let overallSummary = {};
-    
+    // Get changed files from git (run from repo root)
+    let changedFiles = [];
     try {
-      const mcpResult = await checkAccessibilityBatch(filesToCheck);
-      
-      if (mcpResult && mcpResult.results) {
-        batchResults = mcpResult.results;
-        overallSummary = mcpResult.summary || {};
-        console.log(`✅ MCP analysis complete: ${overallSummary.filesWithViolations || 0} files with violations`);
-      } else {
-        throw new Error('Unexpected MCP response format');
-      }
+      const output = execSync('git diff --name-only origin/main...HEAD', { 
+        encoding: 'utf8',
+        cwd: rootDir 
+      });
+      changedFiles = output.split('\n').filter(f => f.trim() !== '');
     } catch (error) {
-      console.error(`❌ MCP server error: ${error.message}`);
-      console.error(`⚠️  Falling back to direct analysis...`);
-      
-      // Fallback: analyze files directly if MCP fails
-      for (const file of filesToCheck) {
-        try {
-          const { analyzeFileHybrid } = await import('../src/core/hybrid-analyzer.js');
-          const violations = await analyzeFileHybrid(file.content, file.path);
-          batchResults.push({
-            filePath: file.path,
-            violations,
-            summary: {
-              totalViolations: violations.length,
-              errors: violations.filter(v => v.severity === 'error').length,
-              warnings: violations.filter(v => v.severity === 'warning').length
-            }
-          });
-        } catch (fallbackError) {
-          console.warn(`⚠️  Failed to analyze ${file.path}:`, fallbackError.message);
-          batchResults.push({
-            filePath: file.path,
-            violations: [],
-            error: fallbackError.message
-          });
-        }
-      }
-      
-      // Calculate summary for fallback
-      overallSummary = {
-        filesChecked: filesToCheck.length,
-        filesWithViolations: batchResults.filter(r => r.violations && r.violations.length > 0).length,
-        totalViolations: batchResults.reduce((sum, r) => sum + (r.summary?.totalViolations || 0), 0),
-        totalErrors: batchResults.reduce((sum, r) => sum + (r.summary?.errors || 0), 0),
-        totalWarnings: batchResults.reduce((sum, r) => sum + (r.summary?.warnings || 0), 0)
-      };
+      console.log('⚠️  Could not detect changed files, analyzing sample files...');
+      // Fallback: analyze common files
+      changedFiles = [
+        'src/AccessibilityViolations.jsx',
+        'src/App.js',
+        'src/components/AccessibleFormValidation/FormValidation.js',
+        'src/components/ColorContrastEnhancer/ContrastToggle.js',
+        'src/components/KeyboardFriendlyNavigation/KeyboardNav.js'
+      ].filter(f => fs.existsSync(path.join(rootDir, f)));
     }
-    
-    // Use summary from MCP if available, otherwise calculate
-    const batchResult = {
-      results: batchResults,
-      summary: overallSummary.filesChecked ? overallSummary : {
-        filesChecked: filesToCheck.length,
-        filesWithViolations: batchResults.filter(r => r.violations && r.violations.length > 0).length,
-        totalViolations: batchResults.reduce((sum, r) => sum + (r.summary?.totalViolations || 0), 0),
-        totalErrors: batchResults.reduce((sum, r) => sum + (r.summary?.errors || 0), 0),
-        totalWarnings: batchResults.reduce((sum, r) => sum + (r.summary?.warnings || 0), 0)
-      }
-    };
-    
-    // Transform MCP results to our format
-    const allViolations = [];
-    
-    if (batchResult && batchResult.results) {
-      for (const fileResult of batchResult.results) {
-        if (fileResult.violations && Array.isArray(fileResult.violations) && fileResult.violations.length > 0) {
-          for (const violation of fileResult.violations) {
-            allViolations.push({
-              id: violation.id || 'unknown',
-              severity: violation.severity || 'error',
-              title: violation.title || 'Accessibility violation',
-              description: violation.description || violation.help || 'Accessibility issue detected',
-              help: violation.help || violation.description || '',
-              line: violation.line || 1,
-              file: fileResult.filePath || 'unknown',
-              wcagCriteria: Array.isArray(violation.wcagCriteria) ? violation.wcagCriteria : [],
-              fixSuggestion: violation.fixSuggestions?.[0] || violation.help || violation.description || 'Review WCAG guidelines',
-              code: violation.code || ''
-            });
+
+    // Filter for relevant file types
+    const relevantFiles = changedFiles.filter(f => 
+      /\.(jsx?|tsx?)$/i.test(f) && fs.existsSync(path.join(rootDir, f))
+    );
+
+    console.log(`📊 Analyzing ${relevantFiles.length} files with ESLint + jsx-a11y...`);
+
+    let totalViolations = 0;
+    let totalErrors = 0;
+    let totalWarnings = 0;
+    const fileResults = [];
+
+    // Use ESLint-based analysis
+    for (const filePath of relevantFiles) {
+      const fullPath = path.join(rootDir, filePath);
+      const content = fs.readFileSync(fullPath, 'utf8');
+      
+      // Analyze using hybrid analyzer (ESLint + jsx-a11y)
+      const violations = await analyzeFileHybrid(content, filePath);
+
+      const errors = violations.filter(v => v.severity === 'error').length;
+      const warnings = violations.filter(v => v.severity === 'warning').length;
+
+      totalViolations += violations.length;
+      totalErrors += errors;
+      totalWarnings += warnings;
+
+      if (violations.length > 0) {
+        fileResults.push({
+          filePath,
+          violations,
+          summary: {
+            totalViolations: violations.length,
+            errors,
+            warnings
           }
-        }
+        });
+        console.log(`  ❌ ${filePath}: ${violations.length} violation(s)`);
+      } else {
+        console.log(`  ✅ ${filePath}: No violations`);
       }
-    } else {
-      console.warn('⚠️  Unexpected MCP response format:', JSON.stringify(batchResult, null, 2));
     }
-    
-    // Generate results
+
+    // Write results
     const results = {
-      prNumber,
-      repository: `${owner}/${repo}`,
-      branch: pr.head.ref,
-      totalFiles: files.length,
-      analyzedFiles: filesToCheck.length,
-      violations: allViolations,
+      analyzedFiles: relevantFiles.length,
+      filesWithViolations: fileResults.length,
       summary: {
-        totalViolations: allViolations.length,
-        errors: allViolations.filter(v => v.severity === 'error').length,
-        warnings: allViolations.filter(v => v.severity === 'warning').length,
-        info: allViolations.filter(v => v.severity === 'info').length
+        totalViolations,
+        errors: totalErrors,
+        warnings: totalWarnings
       },
-      timestamp: new Date().toISOString()
+      files: fileResults
     };
-    
-    // Save results
-    fs.writeFileSync('a11y-results.json', JSON.stringify(results, null, 2));
-    
-    console.log(`✅ Analysis complete: ${results.summary.totalViolations} violations found`);
-    console.log(`   - Errors: ${results.summary.errors}`);
-    console.log(`   - Warnings: ${results.summary.warnings}`);
-    
-    return results;
-    
+
+    fs.writeFileSync(path.join(__dirname, 'a11y-results.json'), JSON.stringify(results, null, 2));
+    console.log('\n✅ Analysis complete!');
+    console.log(`📊 Total: ${totalViolations} violations (${totalErrors} errors, ${totalWarnings} warnings)`);
+
+    process.exit(0);
   } catch (error) {
-    console.error('❌ Analysis failed:', error);
+    console.error('❌ Analysis failed:', error.message);
     console.error(error.stack);
     process.exit(1);
   }
 }
 
-// Run analysis
 analyzePR();

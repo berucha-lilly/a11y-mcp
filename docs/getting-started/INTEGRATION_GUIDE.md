@@ -33,15 +33,13 @@ your-repo/
 │   │   └── accessibility-review.yml    # GitHub Actions workflow
 │   └── a11y-mcp/
 │       ├── mcp-server.js                # Production MCP server
+│       ├── analyze-pr-mcp.js             # PR analysis script
+│       ├── mcp-client.js                 # MCP client
 │       ├── core/
 │       │   ├── hybrid-analyzer.js       # Hybrid analysis engine
 │       │   └── regex-analyzer.js        # Regex analyzer
 │       ├── color-contrast.js            # Color contrast calculator
 │       └── package.json                  # Dependencies
-├── scripts/
-│   ├── analyze-pr-mcp.js               # PR analysis script
-│   ├── mcp-client.js                   # MCP client
-│   └── color-contrast.js               # Color contrast calculator
 └── .a11y/
     └── config.json                      # Configuration
 ```
@@ -153,7 +151,7 @@ Add to `.a11y/config.json` (when fully implemented):
 
 ```bash
 # Test on a file
-node scripts/mcp-client.js test
+node .github/a11y-mcp/mcp-client.js test
 
 # Test on example files
 node cli-scanner.js examples/accessibility-violations.jsx

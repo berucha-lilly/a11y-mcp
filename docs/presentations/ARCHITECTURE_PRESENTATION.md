@@ -175,8 +175,8 @@ Validation:     LDS Storybook (planned - Phase 2)
 │  Your Repository                                         │
 │  • .github/workflows/accessibility-review.yml           │
 │  • .github/a11y-mcp/ (MCP server files)                 │
-│  • scripts/analyze-pr-mcp.js (PR analyzer)              │
-│  • scripts/mcp-client.js (MCP client)                   │
+│  • .github/a11y-mcp/analyze-pr-mcp.js (PR analyzer)     │
+│  • .github/a11y-mcp/mcp-client.js (MCP client)          │
 │  • .a11y/config.json (configuration - planned)          │
 └─────────────────────────────────────────────────────────┘
                         │

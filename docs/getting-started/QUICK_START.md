@@ -25,7 +25,7 @@ This will:
 ### Step 2: Commit Changes
 
 ```bash
-git add .github/ .a11y/ scripts/
+git add .github/ .a11y/
 git commit -m "Add WCAG 2.2 AA accessibility checks"
 git push
 ```
@@ -63,7 +63,6 @@ node cli-scanner.js examples/accessibility-violations.jsx
 # Create directory structure
 mkdir -p .github/a11y-mcp
 mkdir -p .github/workflows
-mkdir -p scripts
 mkdir -p .a11y
 
 # Copy MCP server
@@ -71,8 +70,8 @@ cp src/mcp-server.js .github/a11y-mcp/
 cp src/core/hybrid-analyzer.js .github/a11y-mcp/core/
 cp src/core/regex-analyzer.js .github/a11y-mcp/core/
 cp scripts/color-contrast.js .github/a11y-mcp/
-cp scripts/analyze-pr-mcp.js scripts/
-cp scripts/mcp-client.js scripts/
+cp scripts/analyze-pr-mcp.js .github/a11y-mcp/
+cp scripts/mcp-client.js .github/a11y-mcp/
 
 # Copy workflow
 cp github-actions/accessibility-review.yml .github/workflows/
@@ -87,14 +86,13 @@ your-repo/
 │   │   └── accessibility-review.yml    # GitHub Actions workflow
 │   └── a11y-mcp/
 │       ├── mcp-server.js                # Production MCP server
+│       ├── analyze-pr-mcp.js             # PR analyzer
+│       ├── mcp-client.js                 # MCP client
 │       ├── core/
 │       │   ├── hybrid-analyzer.js       # Hybrid analysis engine
 │       │   └── regex-analyzer.js        # Regex analyzer
 │       ├── color-contrast.js            # Color contrast calculator
 │       └── package.json                  # Dependencies
-├── scripts/
-│   ├── analyze-pr-mcp.js                 # PR analysis script
-│   └── mcp-client.js                    # MCP client
 └── .a11y/
     └── config.json                       # Configuration
 ```
