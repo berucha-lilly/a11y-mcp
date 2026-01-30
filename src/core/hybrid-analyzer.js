@@ -30,7 +30,7 @@ const linterConfig = [
         sourceType: 'module',
         requireConfigFile: false,
         babelOptions: {
-          presets: ['@babel/preset-react'],
+          presets: ['@babel/preset-react', '@babel/preset-typescript'],
         },
       },
       globals: {

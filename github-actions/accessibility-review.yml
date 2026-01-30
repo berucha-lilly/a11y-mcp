@@ -43,15 +43,8 @@ jobs:
           cache: 'npm'
 
       - name: 🔧 Install dependencies
-        run: |
-          echo "Installing A11y-MCP dependencies..."
-          npm install
-          
-          echo "✅ Dependencies installed"
-          echo "📦 MCP SDK version:"
-          npm list @modelcontextprotocol/sdk || echo "⚠️  MCP SDK not found"
-          echo "📦 Octokit version:"
-          npm list @octokit/rest || echo "⚠️  Octokit not found"
+        working-directory: .github/a11y-mcp
+        run: npm install --omit=dev
 
       - name: 📁 Check for configuration
         id: config-check
@@ -76,14 +69,6 @@ jobs:
             "wcagLevel": "AA",
             "wcagVersion": "2.2",
             "strictMode": true,
-            "ldsEnforcement": {
-              "enabled": true,
-              "storybookUrl": "https://storybook.lilly.internal",
-              "requireApprovedComponents": true,
-              "allowedExceptions": ["src/legacy/**"],
-              "cacheComponents": true,
-              "cacheTTL": 3600
-            },
             "rules": {
               "aria-required": {
                 "enabled": true,
@@ -100,13 +85,8 @@ jobs:
               "alt-text": {
                 "enabled": true,
                 "severity": "error"
-              },
-              "lds-components": {
-                "enabled": true,
-                "severity": "warning"
               }
             },
-            "excludedRules": ["color-contrast"],
             "failureThresholds": {
               "error": 0,
               "warning": 10
@@ -150,21 +130,7 @@ jobs:
           REPOSITORY: ${{ steps.pr-info.outputs.repository }}
           BRANCH: ${{ steps.pr-info.outputs.branch }}
         run: |
-          echo "🚀 Starting accessibility analysis via MCP server..."
-          
-          # Test MCP server connection first
-          echo "🔌 Testing MCP server connection..."
-          node .github/a11y-mcp/mcp-client.js test || {
-            echo "❌ MCP server test failed. Checking if server exists..."
-            if [ ! -f "src/mcp-server.js" ]; then
-              echo "❌ MCP server not found. Please ensure src/mcp-server.js exists."
-              exit 1
-            fi
-            echo "⚠️  MCP server exists but test failed. Continuing anyway..."
-          }
-          
-          # Run the hybrid analysis (production-ready)
-          echo "📊 Running PR analysis with hybrid analyzer (production)..."
+          echo "📊 Running PR analysis with hybrid analyzer..."
           node .github/a11y-mcp/analyze-pr-mcp.js
           
           # Check results

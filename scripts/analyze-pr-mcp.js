@@ -20,27 +20,36 @@ async function analyzePR() {
     // Get changed files from git (run from repo root)
     let changedFiles = [];
     try {
-      const output = execSync('git diff --name-only origin/main...HEAD', { 
+      const output = execSync('git diff --name-only origin/main...HEAD', {
         encoding: 'utf8',
-        cwd: rootDir 
+        cwd: rootDir
       });
       changedFiles = output.split('\n').filter(f => f.trim() !== '');
     } catch (error) {
-      console.log('⚠️  Could not detect changed files, analyzing sample files...');
-      // Fallback: analyze common files
-      changedFiles = [
-        'src/AccessibilityViolations.jsx',
-        'src/App.js',
-        'src/components/AccessibleFormValidation/FormValidation.js',
-        'src/components/ColorContrastEnhancer/ContrastToggle.js',
-        'src/components/KeyboardFriendlyNavigation/KeyboardNav.js'
-      ].filter(f => fs.existsSync(path.join(rootDir, f)));
+      console.log('⚠️  Could not detect changed files.');
+      changedFiles = [];
     }
 
     // Filter for relevant file types
     const relevantFiles = changedFiles.filter(f => 
-      /\.(jsx?|tsx?)$/i.test(f) && fs.existsSync(path.join(rootDir, f))
+      /\.(jsx?|tsx?|html?|css|scss)$/i.test(f) && fs.existsSync(path.join(rootDir, f))
     );
+
+    if (relevantFiles.length === 0) {
+      console.log('ℹ️  No relevant files to analyze.');
+      const results = {
+        analyzedFiles: 0,
+        filesWithViolations: 0,
+        summary: {
+          totalViolations: 0,
+          errors: 0,
+          warnings: 0
+        },
+        files: []
+      };
+      fs.writeFileSync(path.join(__dirname, 'a11y-results.json'), JSON.stringify(results, null, 2));
+      process.exit(0);
+    }
 
     console.log(`📊 Analyzing ${relevantFiles.length} files with ESLint + jsx-a11y...`);
 

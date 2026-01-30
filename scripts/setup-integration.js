@@ -37,7 +37,6 @@ const filesToCopy = [
   { src: 'src/mcp-server.js', dst: path.join(a11yDir, 'mcp-server.js') },
   { src: 'src/core/hybrid-analyzer.js', dst: path.join(a11yDir, 'core', 'hybrid-analyzer.js') },
   { src: 'src/core/regex-analyzer.js', dst: path.join(a11yDir, 'core', 'regex-analyzer.js') },
-  { src: 'scripts/color-contrast.js', dst: path.join(a11yDir, 'color-contrast.js') },
   { src: 'scripts/analyze-pr-mcp.js', dst: path.join(a11yDir, 'analyze-pr-mcp.js') },
   { src: 'scripts/mcp-client.js', dst: path.join(a11yDir, 'mcp-client.js') }
 ];
@@ -80,8 +79,16 @@ if (fs.existsSync(packageJsonPath)) {
     version: '1.0.0',
     type: 'module',
     dependencies: {
+      '@babel/core': packageJson.dependencies['@babel/core'],
+      '@babel/eslint-parser': packageJson.dependencies['@babel/eslint-parser'],
+      '@babel/preset-react': packageJson.dependencies['@babel/preset-react'],
+      '@babel/preset-typescript': packageJson.dependencies['@babel/preset-typescript'],
+      '@eslint/js': packageJson.dependencies['@eslint/js'],
       '@modelcontextprotocol/sdk': packageJson.dependencies['@modelcontextprotocol/sdk'],
-      '@octokit/rest': packageJson.dependencies['@octokit/rest']
+      '@octokit/rest': packageJson.dependencies['@octokit/rest'],
+      'eslint': packageJson.dependencies['eslint'],
+      'eslint-plugin-jsx-a11y': packageJson.dependencies['eslint-plugin-jsx-a11y'],
+      'eslint-plugin-react': packageJson.dependencies['eslint-plugin-react']
     }
   };
   
@@ -116,14 +123,6 @@ const defaultConfig = {
   "wcagLevel": "AA",
   "wcagVersion": "2.2",
   "strictMode": true,
-  "ldsEnforcement": {
-    "enabled": false,
-    "storybookUrl": "https://storybook.lilly.internal",
-    "requireApprovedComponents": false,
-    "allowedExceptions": [],
-    "cacheComponents": true,
-    "cacheTTL": 3600
-  },
   "rules": {
     "aria-required": { "enabled": true, "severity": "error" },
     "keyboard-nav": { "enabled": true, "severity": "error" },
@@ -238,10 +237,6 @@ if (fs.existsSync(path.join(a11yDir, 'node_modules'))) {
   console.log('   ⚠️  Note: Dependencies may need to be installed manually\n');
 }
 console.log('📚 Documentation:');
-console.log('   - Quick Start: docs/getting-started/QUICK_START.md');
-console.log('   - Architecture: docs/architecture/ARCHITECTURE.md');
-console.log('   - Setup Guide: docs/getting-started/BEGINNERS_GUIDE.md');
-console.log('   - Integration: docs/getting-started/INTEGRATION_GUIDE.md');
-console.log('   - All docs: docs/ directory\n');
+console.log('   - README.md (root)\n');
 console.log('🎉 Your repository is now protected by WCAG 2.2 AA accessibility checks!');
 console.log('='.repeat(60));

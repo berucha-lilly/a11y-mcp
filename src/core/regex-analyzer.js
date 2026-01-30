@@ -19,7 +19,7 @@ export function analyzeFile(content, filePath) {
   let match;
   
   // JSX/TSX/JS/HTML analysis
-  if (['.jsx', '.tsx', '.js', '.html', '.htm'].includes(ext)) {
+  if (['.jsx', '.tsx', '.js', '.ts', '.html', '.htm'].includes(ext)) {
     
     // 1. Missing alt attributes
     const imgRegex = /<img[^>]*>/gi;
