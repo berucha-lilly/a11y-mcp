@@ -307,7 +307,7 @@ node .github/a11y-mcp/analyze-pr-mcp.js
 
 Results are written to `.github/a11y-mcp/a11y-results.json`. This checks files changed vs `origin/main`.
 
-**Note:** The local scan requires `npm install` in `.github/a11y-mcp/` first.
+**Note:** Dependencies are installed automatically by the setup script. If the local scan fails, run `cd .github/a11y-mcp && npm install`.
 
 #### 4. Create a Test PR
 Create a PR with accessibility violations to verify the GitHub Actions workflow runs:
