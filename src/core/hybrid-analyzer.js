@@ -1,5 +1,8 @@
 /**
- * Hybrid Analyzer: Uses ESLint with jsx-a11y plugin for comprehensive accessibility checking
+ * Hybrid Analyzer: Routes files to appropriate analyzers based on file type
+ * - JSX/TSX/JS files: ESLint with jsx-a11y plugin
+ * - HTML/HTM files: HTML parser with WCAG rules
+ * - CSS/SCSS files: PostCSS with accessibility rules
  */
 
 import { Linter } from 'eslint';
@@ -9,6 +12,8 @@ import babelParser from '@babel/eslint-parser';
 import eslintJs from '@eslint/js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { analyzeHTML } from './html-analyzer.js';
+import { analyzeCSS } from './css-analyzer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -348,9 +353,9 @@ const fixSuggestions = {
 };
 
 /**
- * Analyze file using ESLint Linter with jsx-a11y plugin
+ * Analyze file using ESLint Linter with jsx-a11y plugin (for JSX/TSX files)
  */
-export async function analyzeFileHybrid(content, filePath = 'temp.jsx') {
+async function analyzeFileWithESLint(content, filePath) {
   const linter = new Linter({ configType: 'flat' });
   
   try {
@@ -382,5 +387,48 @@ export async function analyzeFileHybrid(content, filePath = 'temp.jsx') {
     console.error('ESLint analysis error:', error);
     // Fallback to empty array if linting fails
     return [];
+  }
+}
+
+/**
+ * Main entry point: Routes file to appropriate analyzer based on extension
+ */
+export async function analyzeFileHybrid(content, filePath = 'temp.jsx') {
+  const ext = path.extname(filePath).toLowerCase();
+  
+  // Route to appropriate analyzer
+  if (ext === '.html' || ext === '.htm') {
+    // HTML/HTM files
+    const violations = await analyzeHTML(content, filePath);
+    // Transform to match ESLint format
+    return violations.map(v => ({
+      id: v.ruleId,
+      severity: v.severity,
+      message: v.message,
+      description: v.message,
+      line: v.line,
+      column: v.column,
+      wcagCriteria: v.wcag || [],
+      fix: v.fix ? v.fix[0] : 'Review WCAG 2.2 documentation',
+      suggestions: v.fix || ['Review WCAG 2.2 documentation'],
+    }));
+  } else if (ext === '.css' || ext === '.scss') {
+    // CSS/SCSS files
+    const violations = await analyzeCSS(content, filePath);
+    // Transform to match ESLint format
+    return violations.map(v => ({
+      id: v.ruleId,
+      severity: v.severity,
+      message: v.message,
+      description: v.message,
+      line: v.line,
+      column: v.column,
+      wcagCriteria: v.wcag || [],
+      fix: v.fix ? v.fix[0] : 'Review WCAG 2.2 documentation',
+      suggestions: v.fix || ['Review WCAG 2.2 documentation'],
+    }));
+  } else {
+    // JS/JSX/TS/TSX files - use ESLint
+    return analyzeFileWithESLint(content, filePath);
   }
 }

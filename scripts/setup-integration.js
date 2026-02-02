@@ -37,6 +37,8 @@ const filesToCopy = [
   { src: 'src/mcp-server.js', dst: path.join(a11yDir, 'mcp-server.js') },
   { src: 'src/core/hybrid-analyzer.js', dst: path.join(a11yDir, 'core', 'hybrid-analyzer.js') },
   { src: 'src/core/regex-analyzer.js', dst: path.join(a11yDir, 'core', 'regex-analyzer.js') },
+  { src: 'src/core/html-analyzer.js', dst: path.join(a11yDir, 'core', 'html-analyzer.js') },
+  { src: 'src/core/css-analyzer.js', dst: path.join(a11yDir, 'core', 'css-analyzer.js') },
   { src: 'scripts/analyze-pr-mcp.js', dst: path.join(a11yDir, 'analyze-pr-mcp.js') },
   { src: 'scripts/mcp-client.js', dst: path.join(a11yDir, 'mcp-client.js') }
 ];
@@ -86,9 +88,13 @@ if (fs.existsSync(packageJsonPath)) {
       '@eslint/js': packageJson.dependencies['@eslint/js'],
       '@modelcontextprotocol/sdk': packageJson.dependencies['@modelcontextprotocol/sdk'],
       '@octokit/rest': packageJson.dependencies['@octokit/rest'],
+      'domhandler': packageJson.dependencies['domhandler'],
       'eslint': packageJson.dependencies['eslint'],
       'eslint-plugin-jsx-a11y': packageJson.dependencies['eslint-plugin-jsx-a11y'],
-      'eslint-plugin-react': packageJson.dependencies['eslint-plugin-react']
+      'eslint-plugin-react': packageJson.dependencies['eslint-plugin-react'],
+      'htmlparser2': packageJson.dependencies['htmlparser2'],
+      'postcss': packageJson.dependencies['postcss'],
+      'postcss-scss': packageJson.dependencies['postcss-scss']
     }
   };
   
