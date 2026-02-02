@@ -228,15 +228,15 @@ console.log('\n' + '='.repeat(60));
 console.log('✅ Setup Complete!\n');
 console.log('📋 Next Steps:');
 console.log('   1. Review configuration: .a11y/config.json');
-console.log('   2. Commit changes: git add .github/ .a11y/');
-console.log('   3. Push to trigger first check: git push');
-console.log('   4. Create a test PR to verify it works');
+console.log('   2. Commit changes: git add .github/ .a11y/ .gitignore');
+console.log('   3. Push: git push');
+console.log('   4. (Optional) Run local scan: node .github/a11y-mcp/analyze-pr-mcp.js');
+console.log('   5. Create a test PR to verify it works');
 if (fs.existsSync(path.join(a11yDir, 'node_modules'))) {
   console.log('   ✅ Dependencies are installed and ready!\n');
 } else {
-  console.log('   ⚠️  Note: Dependencies may need to be installed manually\n');
+  console.log('   ⚠️  Note: Run npm install in .github/a11y-mcp/ for local scanning\n');
 }
-console.log('📚 Documentation:');
-console.log('   - README.md (root)\n');
+console.log('📚 Full testing guide: README.md → Testing Your Integration section\n');
 console.log('🎉 Your repository is now protected by WCAG 2.2 AA accessibility checks!');
 console.log('='.repeat(60));
