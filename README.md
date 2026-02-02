@@ -279,23 +279,47 @@ Glob patterns to exclude files from checks. Common exclusions:
 
 To customize, edit `.a11y/config.json` in your app repo and commit the changes. The workflow will use the updated config on the next PR.
 
-### Testing
+### Testing Your Integration
 
-#### Pre-PR Local Scan (changed files only)
+After running the setup script, follow these steps to verify everything works:
 
-Run the local analyzer against files changed versus `origin/main`:
-
+#### 1. Review Configuration
+Check the generated config file and customize if needed:
 ```bash
-node scripts/analyze-pr-mcp.js
+cat .a11y/config.json
+# Edit if needed, then save
 ```
 
-Results are written to `scripts/a11y-results.json`.
+#### 2. Commit and Push
+```bash
+git add .github/ .a11y/ .gitignore
+git commit -m "Add accessibility checks"
+git push
+```
 
-#### Validation Suite
+#### 3. Local Pre-PR Scan (Optional)
+Before creating a test PR, you can check for violations locally:
 
 ```bash
-npm test
+# From your app repo root
+node .github/a11y-mcp/analyze-pr-mcp.js
 ```
+
+Results are written to `.github/a11y-mcp/a11y-results.json`. This checks files changed vs `origin/main`.
+
+**Note:** The local scan requires `npm install` in `.github/a11y-mcp/` first.
+
+#### 4. Create a Test PR
+Create a PR with accessibility violations to verify the GitHub Actions workflow runs:
+```bash
+git checkout -b test-a11y
+# Make a change with a violation (e.g., <img> without alt)
+git commit -am "Test accessibility check"
+git push -u origin test-a11y
+# Open PR on GitHub
+```
+
+You should see the bot comment with violations found.
 
 ## 📚 Reference
 
