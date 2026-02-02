@@ -220,12 +220,64 @@ To **block merging** when violations are found:
 
 ### Configuration (.a11y/config.json)
 
-The setup script creates a default config file. Key options:
+The setup script creates a default config file at `.a11y/config.json` in your app repo. You can customize it to match your team's needs.
 
-- `wcagLevel` and `wcagVersion` set the compliance target.
-- `rules` can enable/disable checks and set severity.
-- `failureThresholds` controls pass/fail behavior on PRs.
-- `ignore` supports glob patterns for exclusions.
+#### Default Configuration
+
+```json
+{
+  "wcagLevel": "AA",
+  "wcagVersion": "2.2",
+  "strictMode": true,
+  "rules": {
+    "aria-required": { "enabled": true, "severity": "error" },
+    "keyboard-nav": { "enabled": true, "severity": "error" },
+    "semantic-html": { "enabled": true, "severity": "error" },
+    "alt-text": { "enabled": true, "severity": "error" },
+    "heading-hierarchy": { "enabled": true, "severity": "warning" },
+    "form-labels": { "enabled": true, "severity": "error" },
+    "focus-visible": { "enabled": true, "severity": "warning" }
+  },
+  "failureThresholds": {
+    "error": 0,
+    "warning": 10
+  },
+  "ignore": [
+    "**/*.test.{js,jsx,ts,tsx}",
+    "**/*.stories.{js,jsx,ts,tsx}",
+    "node_modules/**",
+    "dist/**",
+    "build/**"
+  ]
+}
+```
+
+#### Configuration Options
+
+**Compliance Levels:**
+- `wcagLevel`: `"A"`, `"AA"` (default), or `"AAA"` - Sets WCAG compliance target
+- `wcagVersion`: `"2.1"` or `"2.2"` (default) - WCAG specification version
+- `strictMode`: `true` (default) or `false` - When true, all errors must be fixed before merging
+
+**Rules:**
+Each rule can be configured with:
+- `enabled`: `true` or `false` - Whether the rule is active
+- `severity`: `"error"` or `"warning"` - How violations are reported
+
+**Failure Thresholds:**
+- `error`: Maximum number of errors allowed (default: 0)
+- `warning`: Maximum number of warnings allowed (default: 10)
+
+When violations exceed these thresholds, the PR check fails.
+
+**Ignore Patterns:**
+Glob patterns to exclude files from checks. Common exclusions:
+- Test files: `**/*.test.{js,jsx,ts,tsx}`
+- Story files: `**/*.stories.{js,jsx,ts,tsx}`
+- Build outputs: `dist/**`, `build/**`
+- Dependencies: `node_modules/**`
+
+To customize, edit `.a11y/config.json` in your app repo and commit the changes. The workflow will use the updated config on the next PR.
 
 ### Testing
 
