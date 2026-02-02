@@ -20,11 +20,26 @@ async function analyzePR() {
     // Get changed files from git (run from repo root)
     let changedFiles = [];
     try {
-      const output = execSync('git diff --name-only origin/main...HEAD', {
+      // Get both committed changes and uncommitted changes
+      const committedOutput = execSync('git diff --name-only origin/main...HEAD', {
         encoding: 'utf8',
         cwd: rootDir
       });
-      changedFiles = output.split('\n').filter(f => f.trim() !== '');
+      const uncommittedOutput = execSync('git diff --name-only', {
+        encoding: 'utf8',
+        cwd: rootDir
+      });
+      const untrackedOutput = execSync('git ls-files --others --exclude-standard', {
+        encoding: 'utf8',
+        cwd: rootDir
+      });
+      
+      const committed = committedOutput.split('\n').filter(f => f.trim() !== '');
+      const uncommitted = uncommittedOutput.split('\n').filter(f => f.trim() !== '');
+      const untracked = untrackedOutput.split('\n').filter(f => f.trim() !== '');
+      
+      // Combine and deduplicate
+      changedFiles = [...new Set([...committed, ...uncommitted, ...untracked])];
     } catch (error) {
       console.log('⚠️  Could not detect changed files.');
       changedFiles = [];
