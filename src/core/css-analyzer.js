@@ -11,12 +11,26 @@ import postcssScss from 'postcss-scss';
  */
 const violationToWCAG = {
   'focus-outline-removed': ['2.4.7'],
+  'focus-styles-missing': ['2.4.7'],
   'low-contrast-text': ['1.4.3'],
   'small-text-size': ['1.4.4'],
   'hidden-content-accessible': ['1.3.2'],
   'contrast-mode-missing': ['1.4.1'],
   'text-spacing': ['1.4.12'],
   'forced-colors-override': ['1.4.1'],
+  'animation-no-reduced-motion': ['2.3.3'],
+  'insufficient-touch-target': ['2.5.5'],
+  'text-justify': ['1.4.8'],
+  'text-all-caps': ['1.4.8'],
+  'insufficient-focus-indicator': ['2.4.7'],
+  'hover-only-interaction': ['1.4.13'],
+  'text-indent-hiding': ['1.3.2'],
+  'transparent-text': ['1.4.3'],
+  'pointer-events-disabled': ['2.1.1'],
+  'viewport-font-size': ['1.4.4'],
+  'important-overuse': ['1.4.12'],
+  'horizontal-scrolling': ['1.4.10'],
+  'fixed-width-no-scale': ['1.4.10'],
 };
 
 /**
@@ -27,6 +41,11 @@ const fixSuggestions = {
     'Do not remove focus outlines globally',
     'Provide custom visible focus styles: button:focus { outline: 2px solid blue; }',
     'Use :focus-visible for modern browsers: button:focus-visible { outline: 2px solid blue; }',
+  ],
+  'focus-styles-missing': [
+    'Add focus styles to interactive elements',
+    'Use :focus or :focus-visible pseudo-classes',
+    'Ensure minimum 2px outline or visible indicator',
   ],
   'low-contrast-text': [
     'Ensure text has sufficient contrast against background',
@@ -56,6 +75,71 @@ const fixSuggestions = {
   'forced-colors-override': [
     'Do not override forced-colors mode',
     'Respect user color preferences: @media (forced-colors: active)',
+  ],
+  'animation-no-reduced-motion': [
+    'Add @media (prefers-reduced-motion: reduce) query',
+    'Disable or reduce animations for users who prefer less motion',
+    'Example: @media (prefers-reduced-motion: reduce) { .animated { animation: none; } }',
+  ],
+  'insufficient-touch-target': [
+    'Interactive elements should be at least 44x44 pixels',
+    'Increase padding or dimensions to meet minimum touch target size',
+    'Example: button { min-height: 44px; min-width: 44px; padding: 12px; }',
+  ],
+  'text-justify': [
+    'Avoid text-align: justify',
+    'Justified text creates uneven spacing that is hard to read',
+    'Use text-align: left or right instead',
+  ],
+  'text-all-caps': [
+    'Avoid text-transform: uppercase for long text',
+    'All caps text is harder to read',
+    'Use sparingly, only for short labels or buttons',
+  ],
+  'insufficient-focus-indicator': [
+    'Focus indicators should be at least 2px thick',
+    'Ensure sufficient contrast between indicator and background',
+    'Example: button:focus { outline: 2px solid blue; outline-offset: 2px; }',
+  ],
+  'hover-only-interaction': [
+    'Interactive elements should not rely solely on :hover',
+    'Add :focus styles to support keyboard navigation',
+    'Example: .button:hover, .button:focus { background: blue; }',
+  ],
+  'text-indent-hiding': [
+    'Avoid using text-indent to hide text',
+    'Use proper accessibility techniques for off-screen text',
+    'Example: .sr-only { position: absolute; left: -10000px; }',
+  ],
+  'transparent-text': [
+    'Do not use transparent text',
+    'Text must be visible to all users',
+    'Use proper hiding techniques if content should not be displayed',
+  ],
+  'pointer-events-disabled': [
+    'Avoid pointer-events: none on interactive elements',
+    'This prevents keyboard and assistive technology interaction',
+    'Find alternative solutions that maintain accessibility',
+  ],
+  'viewport-font-size': [
+    'Avoid viewport units (vw, vh) for font sizes',
+    'Viewport units do not respect user zoom settings',
+    'Use rem or em units instead',
+  ],
+  'important-overuse': [
+    'Avoid !important on typography and color properties',
+    '!important prevents user stylesheets from overriding',
+    'Refactor CSS specificity instead',
+  ],
+  'horizontal-scrolling': [
+    'Avoid horizontal scrolling',
+    'Content should reflow for narrow viewports',
+    'Use overflow-x: auto only when necessary with proper ARIA labels',
+  ],
+  'fixed-width-no-scale': [
+    'Avoid large fixed pixel widths',
+    'Use max-width with percentage or rem units',
+    'Allow content to reflow at different zoom levels',
   ],
 };
 
@@ -133,21 +217,56 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
   const violations = [];
   const isScss = filePath.endsWith('.scss');
 
+  // Track interactive selectors for focus styles check
+  const interactiveSelectors = new Set();
+  const focusSelectors = new Set();
+
   try {
     const result = await postcss([]).process(content, {
       from: filePath,
       syntax: isScss ? postcssScss : undefined,
     });
 
+    // First pass: collect interactive and focus selectors
+    result.root.walkRules(rule => {
+      const selector = rule.selector.toLowerCase();
+      
+      // Track interactive elements
+      if (/^(a|button|input|select|textarea|\[role=["']?button["']?\])/i.test(selector) ||
+          /\.(btn|button|link)/i.test(selector)) {
+        interactiveSelectors.add(selector.split(':')[0].trim());
+      }
+      
+      // Track focus styles
+      if (selector.includes(':focus')) {
+        focusSelectors.add(selector.split(':focus')[0].trim());
+      }
+    });
+
+    // Check for missing focus styles
+    for (const selector of interactiveSelectors) {
+      if (!focusSelectors.has(selector)) {
+        violations.push({
+          ruleId: 'focus-styles-missing',
+          severity: 'warning',
+          line: 1,
+          column: 1,
+          message: `Interactive element "${selector}" is missing focus styles`,
+          wcag: violationToWCAG['focus-styles-missing'],
+          fix: fixSuggestions['focus-styles-missing'],
+        });
+      }
+    }
+
+    // Second pass: check individual rules
     result.root.walkRules(rule => {
       const line = rule.source?.start?.line || 1;
+      const selector = rule.selector.toLowerCase();
 
       // Check for focus outline removal
       rule.walkDecls('outline', decl => {
         const value = decl.value.toLowerCase();
         if (value === 'none' || value === '0') {
-          // Check if this is inside a focus selector
-          const selector = rule.selector.toLowerCase();
           if (selector.includes(':focus')) {
             violations.push({
               ruleId: 'focus-outline-removed',
@@ -159,23 +278,70 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
               fix: fixSuggestions['focus-outline-removed'],
             });
           }
+        } else if (selector.includes(':focus')) {
+          // Check for insufficient focus indicator
+          const widthMatch = value.match(/(\d+)px/);
+          if (widthMatch && parseInt(widthMatch[1]) < 2) {
+            violations.push({
+              ruleId: 'insufficient-focus-indicator',
+              severity: 'warning',
+              line: decl.source?.start?.line || line,
+              column: decl.source?.start?.column || 1,
+              message: `Focus outline ${widthMatch[1]}px is too thin. Use at least 2px`,
+              wcag: violationToWCAG['insufficient-focus-indicator'],
+              fix: fixSuggestions['insufficient-focus-indicator'],
+            });
+          }
         }
       });
 
+      // Check for hover-only interactions
+      if (selector.includes(':hover') && !selector.includes(':focus')) {
+        rule.walkDecls(decl => {
+          // Check if this is an interactive property (not just cosmetic)
+          const interactiveProps = ['display', 'visibility', 'opacity', 'transform', 'background', 'color'];
+          if (interactiveProps.some(prop => decl.prop.includes(prop))) {
+            violations.push({
+              ruleId: 'hover-only-interaction',
+              severity: 'warning',
+              line: decl.source?.start?.line || line,
+              column: decl.source?.start?.column || 1,
+              message: 'Interactive styles should not rely solely on :hover - add :focus styles',
+              wcag: violationToWCAG['hover-only-interaction'],
+              fix: fixSuggestions['hover-only-interaction'],
+            });
+          }
+        });
+      }
+
       // Check for contrast issues (simplified - checks explicit color pairs)
-      let color = null;
-      let backgroundColor = null;
+      let colorValue = null;
+      let backgroundColorValue = null;
 
       rule.walkDecls('color', decl => {
-        color = parseColor(decl.value);
+        const val = decl.value.toLowerCase();
+        colorValue = parseColor(val);
+        
+        // Check for transparent text
+        if (val === 'transparent') {
+          violations.push({
+            ruleId: 'transparent-text',
+            severity: 'error',
+            line: decl.source?.start?.line || line,
+            column: decl.source?.start?.column || 1,
+            message: 'Text color should not be transparent',
+            wcag: violationToWCAG['transparent-text'],
+            fix: fixSuggestions['transparent-text'],
+          });
+        }
       });
 
       rule.walkDecls('background-color', decl => {
-        backgroundColor = parseColor(decl.value);
+        backgroundColorValue = parseColor(decl.value);
       });
 
-      if (color && backgroundColor) {
-        const ratio = getContrastRatio(color, backgroundColor);
+      if (colorValue && backgroundColorValue) {
+        const ratio = getContrastRatio(colorValue, backgroundColorValue);
         // WCAG AA requires 4.5:1 for normal text
         if (ratio < 4.5) {
           violations.push({
@@ -190,9 +356,24 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
         }
       }
 
-      // Check for small font sizes
+      // Check for small font sizes and viewport units
       rule.walkDecls('font-size', decl => {
         const value = decl.value.toLowerCase();
+        
+        // Check for viewport units
+        if (/\d+v[wh]/.test(value)) {
+          violations.push({
+            ruleId: 'viewport-font-size',
+            severity: 'warning',
+            line: decl.source?.start?.line || line,
+            column: decl.source?.start?.column || 1,
+            message: 'Avoid viewport units (vw, vh) for font sizes - they don\'t respect zoom settings',
+            wcag: violationToWCAG['viewport-font-size'],
+            fix: fixSuggestions['viewport-font-size'],
+          });
+        }
+        
+        // Check for small pixel sizes
         const pxMatch = value.match(/(\d+)px/);
         if (pxMatch) {
           const size = parseInt(pxMatch[1]);
@@ -211,28 +392,27 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
       });
 
       // Check for improper hiding techniques
-      let hasDisplayNone = false;
-      let hasVisibilityHidden = false;
+      let ruleHasDisplayNone = false;
+      let ruleHasVisibilityHidden = false;
 
       rule.walkDecls('display', decl => {
         if (decl.value === 'none') {
-          hasDisplayNone = true;
+          ruleHasDisplayNone = true;
         }
       });
 
       rule.walkDecls('visibility', decl => {
         if (decl.value === 'hidden') {
-          hasVisibilityHidden = true;
+          ruleHasVisibilityHidden = true;
         }
       });
 
       // Check if this might be screen reader only content
-      const selector = rule.selector.toLowerCase();
       const isSROnly = selector.includes('sr-only') || 
                        selector.includes('screen-reader') ||
                        selector.includes('visually-hidden');
 
-      if (isSROnly && (hasDisplayNone || hasVisibilityHidden)) {
+      if (isSROnly && (ruleHasDisplayNone || ruleHasVisibilityHidden)) {
         violations.push({
           ruleId: 'hidden-content-accessible',
           severity: 'error',
@@ -243,6 +423,180 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
           fix: fixSuggestions['hidden-content-accessible'],
         });
       }
+
+      // Check for text-indent hiding
+      rule.walkDecls('text-indent', decl => {
+        const value = parseFloat(decl.value);
+        if (value < -999) {
+          violations.push({
+            ruleId: 'text-indent-hiding',
+            severity: 'warning',
+            line: decl.source?.start?.line || line,
+            column: decl.source?.start?.column || 1,
+            message: 'Large negative text-indent used for hiding - use proper accessibility techniques',
+            wcag: violationToWCAG['text-indent-hiding'],
+            fix: fixSuggestions['text-indent-hiding'],
+          });
+        }
+      });
+
+      // Check for pointer-events disabled on interactive elements
+      rule.walkDecls('pointer-events', decl => {
+        if (decl.value === 'none') {
+          const isInteractive = /button|link|input|select|textarea|a\b/i.test(selector) ||
+                               /\[role=["']?(button|link)["']?\]/.test(selector);
+          if (isInteractive) {
+            violations.push({
+              ruleId: 'pointer-events-disabled',
+              severity: 'error',
+              line: decl.source?.start?.line || line,
+              column: decl.source?.start?.column || 1,
+              message: 'pointer-events: none on interactive elements prevents keyboard and AT interaction',
+              wcag: violationToWCAG['pointer-events-disabled'],
+              fix: fixSuggestions['pointer-events-disabled'],
+            });
+          }
+        }
+      });
+
+      // Check for text justification
+      rule.walkDecls('text-align', decl => {
+        if (decl.value === 'justify') {
+          violations.push({
+            ruleId: 'text-justify',
+            severity: 'warning',
+            line: decl.source?.start?.line || line,
+            column: decl.source?.start?.column || 1,
+            message: 'text-align: justify creates uneven spacing that is harder to read',
+            wcag: violationToWCAG['text-justify'],
+            fix: fixSuggestions['text-justify'],
+          });
+        }
+      });
+
+      // Check for all-caps text
+      rule.walkDecls('text-transform', decl => {
+        if (decl.value === 'uppercase') {
+          violations.push({
+            ruleId: 'text-all-caps',
+            severity: 'warning',
+            line: decl.source?.start?.line || line,
+            column: decl.source?.start?.column || 1,
+            message: 'text-transform: uppercase makes text harder to read - use sparingly',
+            wcag: violationToWCAG['text-all-caps'],
+            fix: fixSuggestions['text-all-caps'],
+          });
+        }
+      });
+
+      // Check for !important overuse on accessibility-critical properties
+      rule.walkDecls(decl => {
+        if (decl.important) {
+          const criticalProps = ['color', 'font-size', 'line-height', 'letter-spacing', 'word-spacing'];
+          if (criticalProps.includes(decl.prop)) {
+            violations.push({
+              ruleId: 'important-overuse',
+              severity: 'warning',
+              line: decl.source?.start?.line || line,
+              column: decl.source?.start?.column || 1,
+              message: `!important on ${decl.prop} prevents user stylesheets from overriding`,
+              wcag: violationToWCAG['important-overuse'],
+              fix: fixSuggestions['important-overuse'],
+            });
+          }
+        }
+      });
+
+      // Check for insufficient touch targets
+      let widthValue = null;
+      let heightValue = null;
+      let minWidthValue = null;
+      let minHeightValue = null;
+
+      rule.walkDecls(/^(width|min-width)$/, decl => {
+        const pxMatch = decl.value.match(/(\d+)px/);
+        if (pxMatch) {
+          const size = parseInt(pxMatch[1]);
+          if (decl.prop === 'width') widthValue = size;
+          if (decl.prop === 'min-width') minWidthValue = size;
+        }
+      });
+
+      rule.walkDecls(/^(height|min-height)$/, decl => {
+        const pxMatch = decl.value.match(/(\d+)px/);
+        if (pxMatch) {
+          const size = parseInt(pxMatch[1]);
+          if (decl.prop === 'height') heightValue = size;
+          if (decl.prop === 'min-height') minHeightValue = size;
+        }
+      });
+
+      const isInteractive = /button|link|input|select|textarea|a\b/i.test(selector) ||
+                           /\[role=["']?(button|link)["']?\]/.test(selector) ||
+                           /\.(btn|button|link)/i.test(selector);
+
+      if (isInteractive) {
+        const effectiveWidth = minWidthValue || widthValue;
+        const effectiveHeight = minHeightValue || heightValue;
+
+        if (effectiveWidth && effectiveWidth < 44) {
+          violations.push({
+            ruleId: 'insufficient-touch-target',
+            severity: 'warning',
+            line: line,
+            column: 1,
+            message: `Touch target width ${effectiveWidth}px is too small. WCAG requires minimum 44x44px`,
+            wcag: violationToWCAG['insufficient-touch-target'],
+            fix: fixSuggestions['insufficient-touch-target'],
+          });
+        }
+
+        if (effectiveHeight && effectiveHeight < 44) {
+          violations.push({
+            ruleId: 'insufficient-touch-target',
+            severity: 'warning',
+            line: line,
+            column: 1,
+            message: `Touch target height ${effectiveHeight}px is too small. WCAG requires minimum 44x44px`,
+            wcag: violationToWCAG['insufficient-touch-target'],
+            fix: fixSuggestions['insufficient-touch-target'],
+          });
+        }
+      }
+
+      // Check for large fixed widths
+      rule.walkDecls('width', decl => {
+        const pxMatch = decl.value.match(/(\d+)px/);
+        if (pxMatch) {
+          const size = parseInt(pxMatch[1]);
+          if (size >= 600) {
+            violations.push({
+              ruleId: 'fixed-width-no-scale',
+              severity: 'warning',
+              line: decl.source?.start?.line || line,
+              column: decl.source?.start?.column || 1,
+              message: `Fixed width ${size}px may not scale properly - use max-width with relative units`,
+              wcag: violationToWCAG['fixed-width-no-scale'],
+              fix: fixSuggestions['fixed-width-no-scale'],
+            });
+          }
+        }
+      });
+
+      // Check for horizontal scrolling
+      rule.walkDecls('overflow-x', decl => {
+        if (decl.value === 'scroll' || decl.value === 'auto') {
+          violations.push({
+            ruleId: 'horizontal-scrolling',
+            severity: 'warning',
+            line: decl.source?.start?.line || line,
+            column: decl.source?.start?.column || 1,
+            message: 'Horizontal scrolling should be avoided - content should reflow',
+            wcag: violationToWCAG['horizontal-scrolling'],
+            fix: fixSuggestions['horizontal-scrolling'],
+          });
+        }
+      });
 
       // Check for line-height restrictions
       rule.walkDecls('line-height', decl => {
@@ -264,9 +618,9 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
       rule.walkDecls(/^(max-height|max-width)$/, decl => {
         const value = decl.value.toLowerCase();
         if (/^\d+(px|em|rem)$/.test(value)) {
-          const selector = rule.selector;
+          const selectorLower = selector.toLowerCase();
           // Skip common layout containers
-          if (!selector.includes('container') && !selector.includes('wrapper')) {
+          if (!selectorLower.includes('container') && !selectorLower.includes('wrapper')) {
             violations.push({
               ruleId: 'text-spacing',
               severity: 'warning',
@@ -283,12 +637,11 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
       // Check for overflow: hidden on text containers
       rule.walkDecls('overflow', decl => {
         if (decl.value === 'hidden') {
-          // Check if selector might be a text container
-          const selector = rule.selector.toLowerCase();
-          const isTextContainer = selector.includes('text') || 
-                                 selector.includes('content') || 
-                                 selector.includes('paragraph') ||
-                                 selector.includes('p');
+          const selectorLower = selector.toLowerCase();
+          const isTextContainer = selectorLower.includes('text') || 
+                                 selectorLower.includes('content') || 
+                                 selectorLower.includes('paragraph') ||
+                                 selectorLower.includes('p');
           if (isTextContainer) {
             violations.push({
               ruleId: 'text-spacing',
@@ -303,6 +656,22 @@ export async function analyzeCSS(content, filePath = 'unknown.css') {
         }
       });
     });
+
+    // Check for animations without reduced motion support
+    const hasAnimation = /@keyframes|animation:|transition:/i.test(content);
+    const hasReducedMotion = /@media\s*\(\s*prefers-reduced-motion/i.test(content);
+
+    if (hasAnimation && !hasReducedMotion) {
+      violations.push({
+        ruleId: 'animation-no-reduced-motion',
+        severity: 'warning',
+        line: 1,
+        column: 1,
+        message: 'Animations detected but no @media (prefers-reduced-motion) query found',
+        wcag: violationToWCAG['animation-no-reduced-motion'],
+        fix: fixSuggestions['animation-no-reduced-motion'],
+      });
+    }
 
     // Check for global outline removal
     const globalOutlineNone = /:focus\s*\{\s*outline:\s*none/i;
