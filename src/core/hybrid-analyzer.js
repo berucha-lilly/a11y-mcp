@@ -1,114 +1,117 @@
 /**
  * Hybrid Analyzer: Routes files to appropriate analyzers based on file type
- * - JSX/TSX/JS files: ESLint with jsx-a11y plugin
+ * - JSX/TSX files: ESLint with jsx-a11y plugin (React accessibility)
+ * - Plain JS files: Custom JS analyzer for DOM manipulation patterns
  * - HTML/HTM files: HTML parser with WCAG rules
  * - CSS/SCSS files: PostCSS with accessibility rules
  */
 
-import { Linter } from 'eslint';
+import { ESLint } from 'eslint';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import react from 'eslint-plugin-react';
 import babelParser from '@babel/eslint-parser';
 import eslintJs from '@eslint/js';
 import path from 'path';
+import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { analyzeHTML } from './html-analyzer.js';
 import { analyzeCSS } from './css-analyzer.js';
+import { analyzeJS } from './js-analyzer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
+const parserPath = require.resolve('@babel/eslint-parser', { paths: [path.join(__dirname, '..')] });
+const presetReactPath = require.resolve('@babel/preset-react', { paths: [path.join(__dirname, '..')] });
+const presetTsPath = require.resolve('@babel/preset-typescript', { paths: [path.join(__dirname, '..')] });
+
+const jsxA11yPlugin = jsxA11y.default || jsxA11y;
+const reactPlugin = react.default || react;
+const parser = babelParser.default || babelParser;
 
 /**
  * ESLint Linter configuration for accessibility checking
  * Must be an array for flat config format
  */
-const linterConfig = [
-  {
-    files: ['**/*.{js,jsx,ts,tsx,mjs,cjs}'],
-    languageOptions: {
-      parser: babelParser,
-      parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-        requireConfigFile: false,
-        babelOptions: {
-          presets: ['@babel/preset-react', '@babel/preset-typescript'],
-        },
-      },
-      globals: {
-        // Browser globals
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearTimeout: 'readonly',
-        clearInterval: 'readonly',
-        // Node globals
-        process: 'readonly',
-        __dirname: 'readonly',
-        __filename: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        exports: 'readonly',
-        // React globals
-        React: 'readonly',
-      },
+const linterConfig = {
+  parser: parserPath,
+  parserOptions: {
+    ecmaFeatures: {
+      jsx: true,
     },
-    plugins: {
-      react,
-      'jsx-a11y': jsxA11y,
-    },
-    rules: {
-      // Set all jsx-a11y rules to error for strict checking
-      'jsx-a11y/alt-text': 'error',
-      'jsx-a11y/anchor-has-content': 'error',
-      'jsx-a11y/anchor-is-valid': 'error',
-      'jsx-a11y/aria-activedescendant-has-tabindex': 'error',
-      'jsx-a11y/aria-props': 'error',
-      'jsx-a11y/aria-proptypes': 'error',
-      'jsx-a11y/aria-role': 'error',
-      'jsx-a11y/aria-unsupported-elements': 'error',
-      'jsx-a11y/autocomplete-valid': 'error',
-      'jsx-a11y/click-events-have-key-events': 'error',
-      'jsx-a11y/control-has-associated-label': 'error',
-      'jsx-a11y/heading-has-content': 'error',
-      'jsx-a11y/html-has-lang': 'error',
-      'jsx-a11y/iframe-has-title': 'error',
-      'jsx-a11y/img-redundant-alt': 'error',
-      'jsx-a11y/interactive-supports-focus': 'error',
-      'jsx-a11y/label-has-associated-control': 'error',
-      'jsx-a11y/media-has-caption': 'error',
-      'jsx-a11y/mouse-events-have-key-events': 'error',
-      'jsx-a11y/no-access-key': 'error',
-      'jsx-a11y/no-autofocus': 'error',
-      'jsx-a11y/no-distracting-elements': 'error',
-      'jsx-a11y/no-interactive-element-to-noninteractive-role': 'error',
-      'jsx-a11y/no-noninteractive-element-interactions': 'error',
-      'jsx-a11y/no-noninteractive-element-to-interactive-role': 'error',
-      'jsx-a11y/no-noninteractive-tabindex': 'error',
-      'jsx-a11y/no-redundant-roles': 'error',
-      'jsx-a11y/no-static-element-interactions': 'error',
-      'jsx-a11y/role-has-required-aria-props': 'error',
-      'jsx-a11y/role-supports-aria-props': 'error',
-      'jsx-a11y/scope': 'error',
-      'jsx-a11y/tabindex-no-positive': 'error',
-      'react/react-in-jsx-scope': 'off',
-      'react/prop-types': 'off',
-      'react/jsx-uses-react': 'off',
-      'react/jsx-uses-vars': 'error',
-    },
-    settings: {
-      react: {
-        version: 'detect',
-      },
+    ecmaVersion: 'latest',
+    sourceType: 'module',
+    requireConfigFile: false,
+    babelOptions: {
+      presets: [presetReactPath, presetTsPath],
     },
   },
-];
+  globals: {
+    // Browser globals
+    window: 'readonly',
+    document: 'readonly',
+    navigator: 'readonly',
+    console: 'readonly',
+    setTimeout: 'readonly',
+    setInterval: 'readonly',
+    clearTimeout: 'readonly',
+    clearInterval: 'readonly',
+    // Node globals
+    process: 'readonly',
+    __dirname: 'readonly',
+    __filename: 'readonly',
+    module: 'readonly',
+    require: 'readonly',
+    exports: 'readonly',
+    // React globals
+    React: 'readonly',
+  },
+  plugins: ['react', 'jsx-a11y'],
+  rules: {
+    // Set all jsx-a11y rules to error for strict checking
+    'jsx-a11y/alt-text': 'error',
+    'jsx-a11y/anchor-has-content': 'error',
+    'jsx-a11y/anchor-is-valid': 'error',
+    'jsx-a11y/aria-activedescendant-has-tabindex': 'error',
+    'jsx-a11y/aria-props': 'error',
+    'jsx-a11y/aria-proptypes': 'error',
+    'jsx-a11y/aria-role': 'error',
+    'jsx-a11y/aria-unsupported-elements': 'error',
+    'jsx-a11y/autocomplete-valid': 'error',
+    'jsx-a11y/click-events-have-key-events': 'error',
+    'jsx-a11y/control-has-associated-label': 'error',
+    'jsx-a11y/heading-has-content': 'error',
+    'jsx-a11y/html-has-lang': 'error',
+    'jsx-a11y/iframe-has-title': 'error',
+    'jsx-a11y/img-redundant-alt': 'error',
+    'jsx-a11y/interactive-supports-focus': 'error',
+    'jsx-a11y/label-has-associated-control': 'error',
+    'jsx-a11y/media-has-caption': 'error',
+    'jsx-a11y/mouse-events-have-key-events': 'error',
+    'jsx-a11y/no-access-key': 'error',
+    'jsx-a11y/no-autofocus': 'error',
+    'jsx-a11y/no-distracting-elements': 'error',
+    'jsx-a11y/no-interactive-element-to-noninteractive-role': 'error',
+    'jsx-a11y/no-noninteractive-element-interactions': 'error',
+    'jsx-a11y/no-noninteractive-element-to-interactive-role': 'error',
+    'jsx-a11y/no-noninteractive-tabindex': 'error',
+    'jsx-a11y/no-redundant-roles': 'error',
+    'jsx-a11y/no-static-element-interactions': 'error',
+    'jsx-a11y/role-has-required-aria-props': 'error',
+    'jsx-a11y/role-supports-aria-props': 'error',
+    'jsx-a11y/scope': 'error',
+    'jsx-a11y/tabindex-no-positive': 'error',
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
+    'react/jsx-uses-react': 'off',
+    'react/jsx-uses-vars': 'error',
+  },
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
+};
 
 /**
  * Maps ESLint rule IDs to WCAG criteria
@@ -356,11 +359,19 @@ const fixSuggestions = {
  * Analyze file using ESLint Linter with jsx-a11y plugin (for JSX/TSX files)
  */
 async function analyzeFileWithESLint(content, filePath) {
-  const linter = new Linter({ configType: 'flat' });
-  
   try {
-    // Lint the content using the Linter API
-    const messages = linter.verify(content, linterConfig, { filename: filePath });
+    const eslint = new ESLint({
+      useEslintrc: false,
+      overrideConfig: linterConfig,
+      resolvePluginsRelativeTo: path.join(__dirname, '..'),
+      plugins: {
+        react: reactPlugin,
+        'jsx-a11y': jsxA11yPlugin,
+      },
+    });
+
+    const results = await eslint.lintText(content, { filePath });
+    const messages = results[0]?.messages || [];
     
     // Transform Linter messages to our violation format
     const violations = messages
@@ -427,8 +438,32 @@ export async function analyzeFileHybrid(content, filePath = 'temp.jsx') {
       fix: v.fix ? v.fix[0] : 'Review WCAG 2.2 documentation',
       suggestions: v.fix || ['Review WCAG 2.2 documentation'],
     }));
+  } else if (ext === '.js' || ext === '.ts') {
+    // .js/.ts files - check if it contains JSX/TSX
+    // Look for React imports or JSX syntax (but not HTML in strings)
+    const hasReactImport = /import\s+.*\s+from\s+['"]react['"]/i.test(content);
+    const hasJSXElement = /return\s*\(?\s*<[A-Z]/.test(content) || /=>\s*<[A-Z]/.test(content);
+    
+    if (hasReactImport || hasJSXElement) {
+      // Has JSX/TSX - use ESLint jsx-a11y
+      return analyzeFileWithESLint(content, filePath);
+    } else {
+      // Plain JavaScript/TypeScript - use JS analyzer for DOM patterns
+      const violations = await analyzeJS(content, filePath);
+      return violations.map(v => ({
+        id: v.ruleId,
+        severity: v.severity,
+        message: v.message,
+        description: v.message,
+        line: v.line,
+        column: v.column,
+        wcagCriteria: v.wcag || [],
+        fix: v.fix ? v.fix[0] : 'Review WCAG 2.2 documentation',
+        suggestions: v.fix || ['Review WCAG 2.2 documentation'],
+      }));
+    }
   } else {
-    // JS/JSX/TS/TSX files - use ESLint
+    // .jsx, .tsx files - always use ESLint (they contain JSX by definition)
     return analyzeFileWithESLint(content, filePath);
   }
 }
